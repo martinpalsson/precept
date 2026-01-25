@@ -312,12 +312,15 @@ Implements:
 """
 
 from docutils import nodes
-from docutils.parsers.rst import directives
+from docutils.parsers.rst import directives, roles
 from docutils.statemachine import ViewList
 from sphinx.application import Sphinx
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import nested_parse_with_titles
 from typing import Any, Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def init_rigr_data(app: Sphinx) -> None:
@@ -327,7 +330,7 @@ def init_rigr_data(app: Sphinx) -> None:
 
 
 def collect_item_links(env, item_id: str, options: dict, config: Any) -> None:
-    """Collect outgoing links from an item for later incoming link resolution."""
+    """Collect outgoing links and values from an item for later resolution."""
     if not item_id:
         return
 
@@ -344,7 +347,11 @@ def collect_item_links(env, item_id: str, options: dict, config: Any) -> None:
             ids = [id.strip() for id in options[opt].split(',')]
             outgoing[opt] = ids
 
-    env.rigr_items[item_id] = {'outgoing': outgoing}
+    # Store the item data including value for parameter references
+    env.rigr_items[item_id] = {
+        'outgoing': outgoing,
+        'value': options.get('value', None),
+    }
 
 
 def build_incoming_links(env) -> Dict[str, Dict[str, List[str]]]:
@@ -373,6 +380,48 @@ def get_incoming_label(config: Any, link_type: str) -> str:
         if lt.get('option') == link_type:
             return lt.get('incoming', f'{link_type} (incoming)').replace('_', ' ').title()
     return f'{link_type} (incoming)'.replace('_', ' ').title()
+
+
+class paramval_ref(nodes.Inline, nodes.TextElement):
+    """Node for parameter value references (resolved later)."""
+    pass
+
+
+def paramval_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    """
+    Role for referencing parameter values inline.
+
+    Usage: :paramval:\`0042\` -> renders as the value of parameter 0042
+    """
+    param_id = text.strip()
+    node = paramval_ref(rawtext, param_id, param_id=param_id)
+    return [node], []
+
+
+def resolve_paramval_refs(app: Sphinx, doctree: nodes.document, docname: str) -> None:
+    """Resolve parameter value references after all documents are read."""
+    env = app.env
+
+    if not hasattr(env, 'rigr_items'):
+        env.rigr_items = {}
+
+    for node in doctree.traverse(paramval_ref):
+        param_id = node.get('param_id', '')
+        item_data = env.rigr_items.get(param_id, {})
+        value = item_data.get('value')
+
+        if value:
+            # Create a reference link to the parameter
+            refnode = nodes.reference('', value, internal=True)
+            refnode['refuri'] = f'#req-{param_id}'
+            refnode['classes'] = ['paramval-ref']
+            node.replace_self(refnode)
+        else:
+            # Parameter not found or no value - show warning
+            logger.warning(f'Parameter value not found for ID: {param_id}')
+            warning_node = nodes.inline('', f'[unknown: {param_id}]')
+            warning_node['classes'] = ['paramval-missing']
+            node.replace_self(warning_node)
 
 
 def add_incoming_links_to_doctree(app: Sphinx, doctree: nodes.document, docname: str) -> None:
@@ -477,6 +526,7 @@ class ItemDirective(SphinxDirective):
         'type': directives.unchanged,
         'level': directives.unchanged,
         'status': directives.unchanged,
+        'value': directives.unchanged,  # Parameter value for :paramval: references
         # Link options (populated dynamically from config)
         'satisfies': directives.unchanged,
         'implements': directives.unchanged,
@@ -607,6 +657,10 @@ class ItemDirective(SphinxDirective):
             rows.append(('Level', level_title, None))
 
         rows.append(('Status', status, ['rigr-status-badge', f'rigr-status-{status}']))
+
+        # Value field for parameters (per 00313)
+        if 'value' in self.options and self.options['value']:
+            rows.append(('Value', self.options['value'], 'rigr-value'))
 
         # Link fields - all incoming and outgoing relationships
         link_types = getattr(config, 'rigr_link_types', [])
@@ -1009,12 +1063,16 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_directive('graphic', GraphicDirective)
     app.add_directive('listing', CodeDirective)
 
-    # Register event handlers for incoming link resolution
+    # Register the paramval role for parameter value references
+    roles.register_local_role('paramval', paramval_role)
+
+    # Register event handlers for incoming link resolution and paramval resolution
     app.connect('builder-inited', init_rigr_data)
     app.connect('doctree-resolved', add_incoming_links_to_doctree)
+    app.connect('doctree-resolved', resolve_paramval_refs)
 
     return {
-        'version': '1.1.0',
+        'version': '1.2.0',
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }

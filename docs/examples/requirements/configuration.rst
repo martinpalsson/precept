@@ -126,6 +126,82 @@ Object Type Configuration
    - parameter: Configurable values
    - design_element: Architectural decisions
 
+Parameter Value References
+==========================
+
+.. item:: Single source of truth for parameter values
+   :id: 00312
+   :type: requirement
+   :level: stakeholder
+   :status: draft
+
+   As a requirements engineer I want to be able to define parameters
+   which can be referenced by value in other items (requirements, tests,
+   etc.), with a single source of truth, such that if necessary only one
+   change needs to be made to adjust the value at a later time.
+
+.. item:: Parameter value attribute
+   :id: 00313
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00312
+
+   The ``.. item::`` directive shall support a ``:value:`` option that
+   stores the parameter's actual value. This option is intended for
+   items of type ``parameter`` but is available on all item types.
+
+   Example::
+
+      .. item:: Maximum Response Time
+         :id: 0042
+         :type: parameter
+         :value: 200ms
+
+         The maximum allowed response time for API calls.
+
+.. item:: Parameter value reference role
+   :id: 00314
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00312
+
+   The Sphinx extension shall provide a ``:paramval:`` role that renders
+   the value of a parameter item inline. The role takes the parameter's
+   ID as argument and resolves to the parameter's ``:value:`` at build time.
+
+   Example::
+
+      The system shall respond within :paramval:`0042`.
+
+   Renders as: "The system shall respond within 200ms."
+
+.. item:: Parameter value reference with link
+   :id: 00315
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00314
+
+   The rendered parameter value shall be a hyperlink to the parameter's
+   definition, allowing readers to navigate to the full parameter
+   specification for context.
+
+.. item:: Missing parameter value handling
+   :id: 00316
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00314
+
+   When a ``:paramval:`` reference cannot be resolved (unknown ID or
+   parameter has no ``:value:`` defined), the extension shall:
+
+   - Display the reference as "???" or "[unknown: ID]"
+   - Generate a WARNING during the Sphinx build
+   - Not fail the build
+
 Level Configuration
 ===================
 

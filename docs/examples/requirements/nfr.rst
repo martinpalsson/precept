@@ -56,22 +56,18 @@ Performance Requirements
    :level: system
    :status: approved
 
-   Automatic validation per file SHALL complete within 1 second
+   Automatic validation per file SHALL complete within :paramval:`00217`
    to avoid blocking the editor.
 
-.. item:: Performance timing parameters
+.. item:: Maximum validation time
    :id: 00217
    :type: parameter
    :level: system
    :status: approved
+   :value: 1 second
 
-   Performance targets summary:
-
-   - Activation: < 2 seconds
-   - Initial index (500 reqs): < 5 seconds
-   - Incremental update: < 500ms
-   - Autocomplete: < 300ms
-   - Validation per file: < 1 second
+   Maximum time allowed for automatic validation of a single file.
+   This ensures the editor remains responsive during validation.
 
 Scalability Requirements
 ========================
