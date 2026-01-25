@@ -1,13 +1,21 @@
 # Rigr
 
-**A free and open source requirements management system.**
+**A free and open source requirements engineering tool.**
 
 Rigr (pronounced "rigger") is part of a complete open source RMS stack:
 - **Sphinx** - Documentation generation and publishing
 - **VS Code + Rigr** - Intelligent editing with IntelliSense, validation, and traceability
 - **Version Control** - Git-based change tracking (your choice of hosting)
 
-Designed for automotive, embedded systems, and safety-critical engineering. Manage requirements through the entire product lifecycle with RST-based documentation.
+The goal of Rigr is to provide a free and light weight requirements 
+engineering tool suitable for developing software solutions and 
+physical products. 
+Rigr is heavily vibe-coded but there is a requirement base for it in
+docs/examples/requirements which serves both as an example and instruction
+to (in my case) claude code.
+
+
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.80+-blue.svg)](https://code.visualstudio.com/)
@@ -50,12 +58,17 @@ Designed for automotive, embedded systems, and safety-critical engineering. Mana
 
 ## Installation
 
+
+
 ### From VS Code Marketplace
+**Rigr is pre-release and currently not released in VS Code Marketplace, for now, install from source**
+
 1. Open Extensions (`Ctrl+Shift+X`)
 2. Search for "Rigr"
 3. Click **Install**
 
 ### From VSIX
+**Rigr is pre-release and currently not released in VS Code Marketplace, for now, install from source**
 ```bash
 code --install-extension rigr-0.0.1.vsix
 ```
@@ -120,17 +133,12 @@ rigr_statuses = [
 
 ### 2. Create Requirements
 
-Use snippets - type `req-` and press Tab:
+Use snippets - type `.. `, a dropdown will appear and you can select among common snippets.
 
-```rst
-.. item:: System shall monitor network traffic
-   :id: 0001
-   :type: requirement
-   :status: draft
+![Snippets menu](docs/images/dropdown1.png)
 
-   The system must capture and analyze all network packets
-   on the designated interface.
-```
+The snippet can then be navigated by tabbing field by field. Intellisense on the attributes
+![Attributes dropdown menu](docs/images/dropdown2.png)
 
 ### 3. Link Requirements
 
@@ -143,13 +151,33 @@ Autocomplete helps with linking:
    :implements: |  ← Press Ctrl+Space for suggestions
 ```
 
-### 4. Navigate & Validate
+### 4. Navigate
 
-- `Ctrl+Click` on IDs to jump to definitions
-- `Shift+F12` to find all references
-- Validation errors appear automatically
-- Use `Ctrl+.` for quick fixes
+#### `Ctrl+Click` on IDs to jump to definitions
+#### `Shift+F12` to find all references
+![References popup](docs/images/find-all-references1.png)
 
+#### Requirements Explorer
+![Requirements Explorer](docs/images/req-explorer1.png)
+
+All items (not limited to requirements) show up in the Requirements Explorer.
+When an item in the requirements explorer is selected, the text editor is
+focused on that item, and the relationship explorer will focus on that item.
+
+#### Relationship Explorer
+![Relationship Explorer](docs/images/rel-explorer1.png)
+
+Shows the relations (incoming/outgoing) for the item in focus. The user can
+click on a related item in the relationship explorer to navigate the text
+to the item, and focus the requirements explorer on it.
+
+### 5. Validate
+#### Validation errors appear automatically
+![Validation errors are marked with red squiggly lines](docs/images/validation-error1.png)
+#### Use `Ctrl+.` for quick fixes
+Also works when clicking the star symbol.
+
+![Quick Fix](docs/images/quick-fix1.png)
 ## Configuration
 
 Rigr reads its configuration from Sphinx's `conf.py` file - the same configuration drives both Rigr's VS Code features and Sphinx documentation builds.

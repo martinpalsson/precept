@@ -146,8 +146,7 @@ function createRequirementSnippetCompletion(
     `   :type: \${2|${objectTypes}|}`,
     `   :level: ${level.level}`,
     `   :status: \${3|${statusChoices}|}`,
-    `   \${4::links: }`,
-    `   `,
+    ``,
     `   \${0:Description}`,
   ];
 
@@ -198,8 +197,7 @@ function createGenericSnippetCompletion(
     `   :type: \${2|${objectTypes}|}`,
     `   :level: \${3|${levels}|}`,
     `   :status: \${4|${statusChoices}|}`,
-    `   \${5::links: }`,
-    `   `,
+    ``,
     `   \${0:Description}`,
   ];
 
