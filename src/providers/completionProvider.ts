@@ -308,6 +308,53 @@ function createCodeSnippetCompletion(
 }
 
 /**
+ * Create a snippet completion for inserting a new parameter
+ */
+function createParameterSnippetCompletion(
+  nextId: string,
+  config: RigrConfig,
+  replaceRange: vscode.Range | null
+): vscode.CompletionItem {
+  const statuses = getStatusNames(config);
+  const statusChoices = statuses.length > 0 ? statuses.join(',') : 'draft,review,approved,implemented';
+  const levels = config.levels.map(l => l.level).join(',');
+
+  const label = `New Parameter (${nextId})`;
+  const item = new vscode.CompletionItem(label, vscode.CompletionItemKind.Snippet);
+
+  const snippetLines = [
+    `.. item:: \${1:Parameter Name}`,
+    `   :id: ${nextId}`,
+    `   :type: parameter`,
+    `   :level: \${2|${levels}|}`,
+    `   :status: \${3|${statusChoices}|}`,
+    `   :value: \${4:value}`,
+    ``,
+    `   \${0:Description of the parameter.}`,
+  ];
+
+  item.insertText = new vscode.SnippetString(snippetLines.join('\n'));
+  item.filterText = `parameter .. item:: new parameter value`;
+  item.sortText = `0-1-parameter`;
+
+  if (replaceRange) {
+    item.range = replaceRange;
+  }
+
+  item.documentation = new vscode.MarkdownString([
+    `**Insert New Parameter**`,
+    '',
+    `Creates a new parameter item with auto-generated ID \`${nextId}\`.`,
+    '',
+    `Parameters have a \`:value:\` field that can be referenced using \`:paramval:\`${nextId}\`\`.`,
+  ].join('\n'));
+
+  item.detail = `Insert parameter with ID ${nextId}`;
+
+  return item;
+}
+
+/**
  * Get trigger characters for completion
  */
 function getTriggerCharacters(config: RigrConfig): string[] {
@@ -506,6 +553,10 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
       // Add code directive snippet
       const codeItem = createCodeSnippetCompletion(nextId, this.config, directiveInfo.replaceRange);
       items.push(codeItem);
+
+      // Add parameter snippet
+      const paramItem = createParameterSnippetCompletion(nextId, this.config, directiveInfo.replaceRange);
+      items.push(paramItem);
     }
 
     // Add ID reference completions if in link/inline context
