@@ -1,0 +1,42 @@
+{
+  "Inline Item Reference": {
+    "prefix": ["item-ref", "itemlink"],
+    "body": [":item:`${1:0001}`"],
+    "description": "Insert an inline item reference"
+  },
+  "Item Link Option": {
+    "prefix": "links",
+    "body": [":links: ${1:0001}"],
+    "description": "Add a links option"
+  },
+  "Satisfies Option": {
+    "prefix": "satisfies",
+    "body": [":satisfies: ${1:0001}"],
+    "description": "Add a satisfies option"
+  },
+  "Implements Option": {
+    "prefix": "implements",
+    "body": [":implements: ${1:0001}"],
+    "description": "Add an implements option"
+  },
+  "Derives From Option": {
+    "prefix": "derives",
+    "body": [":derives_from: ${1:0001}"],
+    "description": "Add a derives_from option"
+  },
+  "Tests Option": {
+    "prefix": "tests",
+    "body": [":tests: ${1:0001}"],
+    "description": "Add a tests option"
+  },
+  "Level Option": {
+    "prefix": "level",
+    "body": [":level: ${1|stakeholder,system,component,software,hardware|}"],
+    "description": "Add a level option"
+  },
+  "Baseline Option": {
+    "prefix": "baseline",
+    "body": [":baseline: ${1:v1.0.0}"],
+    "description": "Add a baseline tag option"
+  }
+}

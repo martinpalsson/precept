@@ -1,0 +1,455 @@
+/* =============================================================================
+   Rigr Requirements Styling
+   =============================================================================
+   Theme-compatible styles for requirement items (implements 00300, 00301, 00305).
+   Works with: Sphinx default, Alabaster, Read the Docs, Furo, and other themes.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   CSS Custom Properties (Theme Integration)
+   These inherit from the page context for proper theme compatibility
+   ----------------------------------------------------------------------------- */
+:root {
+    --rigr-border-color: rgba(0, 0, 0, 0.1);
+    --rigr-bg-light: rgba(0, 0, 0, 0.02);
+    --rigr-bg-header: rgba(0, 0, 0, 0.04);
+    --rigr-bg-content: transparent;
+    --rigr-text-primary: inherit;
+    --rigr-text-secondary: inherit;
+    --rigr-id-color: #1565c0;
+    --rigr-id-bg: rgba(21, 101, 192, 0.1);
+    --rigr-type-color: #5d4037;
+}
+
+/* -----------------------------------------------------------------------------
+   Item Container
+   ----------------------------------------------------------------------------- */
+.rigr-item {
+    border: 1px solid var(--rigr-border-color);
+    border-radius: 4px;
+    margin: 1.5em 0;
+    background: var(--rigr-bg-light);
+    overflow: hidden;
+}
+
+/* Type-specific left border accent */
+.rigr-type-requirement {
+    border-left: 4px solid #1976d2;
+}
+
+.rigr-type-specification {
+    border-left: 4px solid #388e3c;
+}
+
+.rigr-type-rationale {
+    border-left: 4px solid #f57c00;
+}
+
+.rigr-type-information {
+    border-left: 4px solid #7b1fa2;
+}
+
+.rigr-type-parameter {
+    border-left: 4px solid #0097a7;
+}
+
+.rigr-type-design_element {
+    border-left: 4px solid #455a64;
+}
+
+/* -----------------------------------------------------------------------------
+   Title (rubric element) - per 00300, 00305
+   Used for both items and graphics
+   ----------------------------------------------------------------------------- */
+.rigr-item .rigr-title,
+.rigr-graphic .rigr-title,
+.rigr-code .rigr-title {
+    margin: 0;
+    padding: 0.75em 1em;
+    background: var(--rigr-bg-header);
+    border-bottom: 1px solid var(--rigr-border-color);
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--rigr-text-primary);
+}
+
+/* -----------------------------------------------------------------------------
+   ID and Type styling in table cells - per 00300
+   ----------------------------------------------------------------------------- */
+.rigr-id {
+    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-weight: 600;
+    color: var(--rigr-id-color);
+    background: var(--rigr-id-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.95em;
+}
+
+.rigr-type-label {
+    color: var(--rigr-type-color);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.05em;
+}
+
+/* -----------------------------------------------------------------------------
+   Metadata Table - per 00300, 00305
+   Contains: ID, Type, Level, Status, relationships
+   ----------------------------------------------------------------------------- */
+.rigr-metadata-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin: 0;
+    background: transparent;
+}
+
+.rigr-metadata-table td {
+    padding: 0.4em 1em;
+    border-bottom: 1px solid var(--rigr-border-color);
+    vertical-align: top;
+    color: var(--rigr-text-primary);
+}
+
+.rigr-metadata-table td:first-child {
+    width: 30%;
+    font-weight: 500;
+    color: var(--rigr-text-secondary);
+    background: var(--rigr-bg-header);
+}
+
+.rigr-metadata-table td:last-child {
+    background: var(--rigr-bg-content);
+}
+
+.rigr-metadata-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Status Badges
+   Colors match conf.py rigr_statuses configuration
+   ----------------------------------------------------------------------------- */
+.rigr-status-badge {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.rigr-status-badge.rigr-status-draft {
+    background: #FFEB3B;
+    color: #5d4037;
+}
+
+.rigr-status-badge.rigr-status-review {
+    background: #FF9800;
+    color: #fff;
+}
+
+.rigr-status-badge.rigr-status-approved {
+    background: #4CAF50;
+    color: #fff;
+}
+
+.rigr-status-badge.rigr-status-implemented {
+    background: #2196F3;
+    color: #fff;
+}
+
+.rigr-status-badge.rigr-status-verified {
+    background: #9C27B0;
+    color: #fff;
+}
+
+.rigr-status-badge.rigr-status-deprecated {
+    background: #9E9E9E;
+    color: #fff;
+}
+
+.rigr-status-badge.rigr-status-rejected {
+    background: #F44336;
+    color: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   Body Content - per 00300
+   ----------------------------------------------------------------------------- */
+.rigr-body {
+    padding: 1em;
+    background: var(--rigr-bg-content);
+    color: var(--rigr-text-primary);
+}
+
+.rigr-body > *:first-child {
+    margin-top: 0;
+}
+
+.rigr-body > *:last-child {
+    margin-bottom: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Theme: Read the Docs Compatibility
+   ----------------------------------------------------------------------------- */
+.wy-body-for-nav .rigr-item,
+.wy-body-for-nav .rigr-graphic,
+.wy-body-for-nav .rigr-code,
+.rst-content .rigr-item,
+.rst-content .rigr-graphic,
+.rst-content .rigr-code {
+    --rigr-border-color: #e1e4e5;
+    --rigr-bg-light: #f8f9fa;
+    --rigr-bg-header: #eef0f1;
+    --rigr-bg-content: #fcfcfc;
+    --rigr-text-primary: #404040;
+    --rigr-text-secondary: #6c757d;
+    --rigr-type-color: #6c757d;
+}
+
+/* RTD specific table overrides - prevent theme table styles from interfering */
+.rst-content .rigr-metadata-table {
+    margin-bottom: 0;
+    border: none;
+}
+
+.rst-content .rigr-metadata-table td {
+    border-left: none;
+    border-right: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Theme: Alabaster Compatibility
+   ----------------------------------------------------------------------------- */
+body.alabaster .rigr-item,
+body.alabaster .rigr-graphic,
+body.alabaster .rigr-code {
+    --rigr-border-color: #ddd;
+    --rigr-bg-light: #fdfdfd;
+    --rigr-bg-header: #f7f7f7;
+    --rigr-bg-content: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   Theme: Sphinx Default (Classic) Compatibility
+   ----------------------------------------------------------------------------- */
+div.body .rigr-item,
+div.body .rigr-graphic,
+div.body .rigr-code {
+    --rigr-border-color: #ccc;
+    --rigr-bg-light: #f8f8f8;
+    --rigr-bg-header: #efefef;
+    --rigr-bg-content: #fff;
+}
+
+/* -----------------------------------------------------------------------------
+   Theme: Furo Compatibility
+   ----------------------------------------------------------------------------- */
+body[data-theme="light"] .rigr-item,
+body[data-theme="light"] .rigr-graphic,
+body[data-theme="light"] .rigr-code,
+.furo-body .rigr-item,
+.furo-body .rigr-graphic,
+.furo-body .rigr-code {
+    --rigr-border-color: var(--color-background-border, #e0e0e0);
+    --rigr-bg-light: var(--color-background-secondary, #fafafa);
+    --rigr-bg-header: var(--color-background-hover, #f5f5f5);
+    --rigr-bg-content: var(--color-background-primary, #fff);
+}
+
+/* Furo dark theme */
+body[data-theme="dark"] .rigr-item,
+body[data-theme="dark"] .rigr-graphic,
+body[data-theme="dark"] .rigr-code {
+    --rigr-border-color: var(--color-background-border, #404040);
+    --rigr-bg-light: var(--color-background-secondary, #1a1a1a);
+    --rigr-bg-header: var(--color-background-hover, #262626);
+    --rigr-bg-content: var(--color-background-primary, #1a1a1a);
+    --rigr-text-primary: var(--color-foreground-primary, #e0e0e0);
+    --rigr-text-secondary: var(--color-foreground-secondary, #9e9e9e);
+    --rigr-id-color: #90caf9;
+    --rigr-id-bg: rgba(144, 202, 249, 0.15);
+    --rigr-type-color: #bcaaa4;
+}
+
+/* -----------------------------------------------------------------------------
+   Dark Mode Support (system preference)
+   ----------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rigr-border-color: rgba(255, 255, 255, 0.1);
+        --rigr-bg-light: rgba(255, 255, 255, 0.03);
+        --rigr-bg-header: rgba(255, 255, 255, 0.05);
+        --rigr-bg-content: transparent;
+        --rigr-id-color: #90caf9;
+        --rigr-id-bg: rgba(144, 202, 249, 0.15);
+        --rigr-type-color: #bcaaa4;
+    }
+}
+
+/* =============================================================================
+   GRAPHIC DIRECTIVE STYLES (implements 00303, 00304, 00305)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Graphic Container - Full width display
+   ----------------------------------------------------------------------------- */
+.rigr-graphic {
+    margin: 2em 0;
+    padding: 0;
+    background: var(--rigr-bg-light);
+    border: 1px solid var(--rigr-border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* -----------------------------------------------------------------------------
+   Graphic Content - Full width images and diagrams (per 00305)
+   ----------------------------------------------------------------------------- */
+.rigr-graphic-content {
+    padding: 1em;
+    background: var(--rigr-bg-content);
+    overflow-x: auto;
+    text-align: center;
+}
+
+/* Clickable link wrapper for full-size view (per 00305) */
+.rigr-graphic-link {
+    display: block;
+    cursor: zoom-in;
+}
+
+.rigr-graphic-link:hover img {
+    opacity: 0.9;
+}
+
+/* Images display at full width */
+.rigr-graphic-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    transition: opacity 0.2s;
+}
+
+/* PlantUML SVG objects display at full width */
+.rigr-graphic-content object,
+.rigr-graphic-content svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* PlantUML container */
+.rigr-graphic-uml {
+    width: 100%;
+}
+
+.rigr-graphic-uml .plantuml {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.rigr-graphic-uml object {
+    max-width: 100%;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* -----------------------------------------------------------------------------
+   Graphic Caption (per 00305)
+   ----------------------------------------------------------------------------- */
+.rigr-graphic-caption {
+    padding: 0.75em 1em;
+    background: var(--rigr-bg-header);
+    border-top: 1px solid var(--rigr-border-color);
+    text-align: center;
+    font-style: italic;
+    color: var(--rigr-text-secondary);
+}
+
+.rigr-graphic-caption p {
+    margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Theme: Read the Docs Compatibility for Graphics
+   ----------------------------------------------------------------------------- */
+.rst-content .rigr-graphic-content img {
+    max-width: 100%;
+}
+
+/* =============================================================================
+   CODE DIRECTIVE STYLES (implements 00308, 00309)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Code Container
+   ----------------------------------------------------------------------------- */
+.rigr-code {
+    margin: 2em 0;
+    padding: 0;
+    background: var(--rigr-bg-light);
+    border: 1px solid var(--rigr-border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Code content - the actual code block */
+.rigr-code-content {
+    margin: 0;
+    padding: 0;
+}
+
+/* Remove extra margins from nested code-block */
+.rigr-code-content .highlight {
+    margin: 0;
+    border-radius: 0;
+}
+
+.rigr-code-content pre {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--rigr-border-color);
+    border-bottom: 1px solid var(--rigr-border-color);
+}
+
+/* Code Caption */
+.rigr-code-caption {
+    padding: 0.75em 1em;
+    background: var(--rigr-bg-header);
+    border-top: 1px solid var(--rigr-border-color);
+    text-align: center;
+    font-style: italic;
+    color: var(--rigr-text-secondary);
+}
+
+.rigr-code-caption p {
+    margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Print Styles
+   ----------------------------------------------------------------------------- */
+@media print {
+    .rigr-item {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        box-shadow: none;
+    }
+
+    .rigr-graphic {
+        break-inside: avoid;
+    }
+
+    .rigr-status-badge {
+        border: 1px solid currentColor;
+    }
+}

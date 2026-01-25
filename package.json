@@ -1,0 +1,242 @@
+{
+  "name": "rigr",
+  "displayName": "Rigr",
+  "description": "The lightest tool to rig a project for success - minimalistic requirements management system for VS Code",
+  "version": "0.0.1",
+  "publisher": "rigr",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "keywords": [
+    "requirements",
+    "traceability",
+    "digital-thread",
+    "systems-engineering",
+    "rst",
+    "reStructuredText"
+  ],
+  "activationEvents": [
+    "onLanguage:restructuredtext",
+    "workspaceContains:**/*.rst",
+    "workspaceContains:**/conf.py"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "requirements.reloadConfiguration",
+        "title": "Rigr: Reload Configuration"
+      },
+      {
+        "command": "requirements.deepValidation",
+        "title": "Rigr: Deep Validation"
+      },
+      {
+        "command": "requirements.tagBaseline",
+        "title": "Rigr: Tag Current Baseline"
+      },
+      {
+        "command": "requirements.removeBaselineTags",
+        "title": "Rigr: Remove Baseline Tags"
+      },
+      {
+        "command": "requirements.generateReport",
+        "title": "Rigr: Generate Release Report"
+      },
+      {
+        "command": "requirements.createGitTag",
+        "title": "Rigr: Create Git Tag for Baseline"
+      },
+      {
+        "command": "requirements.refreshTreeView",
+        "title": "Rigr: Refresh Explorer"
+      },
+      {
+        "command": "requirements.refreshRelationshipExplorer",
+        "title": "Rigr: Refresh Relationship Explorer"
+      },
+      {
+        "command": "requirements.showRelationships",
+        "title": "Rigr: Show Relationships"
+      },
+      {
+        "command": "requirements.createProject",
+        "title": "Rigr: New RMS Project"
+      },
+      {
+        "command": "requirements.buildDocumentation",
+        "title": "Rigr: Build Documentation"
+      },
+      {
+        "command": "requirements.viewDocumentation",
+        "title": "Rigr: View Documentation"
+      }
+    ],
+    "configuration": {
+      "title": "Requirements",
+      "properties": {
+        "requirements.validation.automatic": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic validation"
+        },
+        "requirements.validation.onSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate on file save"
+        },
+        "requirements.validation.debounceMs": {
+          "type": "number",
+          "default": 500,
+          "description": "Debounce time for validation in milliseconds"
+        },
+        "requirements.validation.checkCircularDeps": {
+          "type": "boolean",
+          "default": false,
+          "description": "Check for circular dependencies during automatic validation"
+        },
+        "requirements.validation.checkCoverage": {
+          "type": "boolean",
+          "default": false,
+          "description": "Check coverage during automatic validation"
+        },
+        "requirements.treeView.groupBy": {
+          "type": "string",
+          "enum": ["type", "file", "status"],
+          "default": "type",
+          "description": "Group requirements in tree view by"
+        },
+        "requirements.treeView.showStatusIcons": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show status icons in tree view"
+        },
+        "requirements.indexing.maxFiles": {
+          "type": "number",
+          "default": 1000,
+          "description": "Maximum number of files to index"
+        },
+        "requirements.indexing.excludePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["**/build/**", "**/_build/**"],
+          "description": "Glob patterns to exclude from indexing"
+        },
+        "requirements.config.overrideSphinxConfig": {
+          "type": "boolean",
+          "default": false,
+          "description": "Override configuration from conf.py with custom settings"
+        },
+        "requirements.config.customTypes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "directive": { "type": "string" },
+              "title": { "type": "string" },
+              "prefix": { "type": "string" },
+              "color": { "type": "string" },
+              "style": { "type": "string" }
+            },
+            "required": ["directive", "title", "prefix"]
+          },
+          "default": [],
+          "description": "Custom requirement types (only used if overrideSphinxConfig is true)"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "requirementsExplorer",
+          "name": "Requirements Explorer"
+        },
+        {
+          "id": "relationshipExplorer",
+          "name": "Relationship Explorer"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "requirementsExplorer",
+        "contents": "No requirements found.\n[Reload Configuration](command:requirements.reloadConfiguration)"
+      },
+      {
+        "view": "relationshipExplorer",
+        "contents": "Select a requirement in the Requirements Explorer to view its relationships."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "requirements.refreshTreeView",
+          "when": "view == requirementsExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "requirements.refreshRelationshipExplorer",
+          "when": "view == relationshipExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "requirements.tagBaseline",
+          "when": "view == requirementsExplorer && viewItem == requirement"
+        },
+        {
+          "command": "requirements.showRelationships",
+          "when": "view == requirementsExplorer && viewItem == requirement"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "restructuredtext",
+        "aliases": ["reStructuredText", "RST"],
+        "extensions": [".rst", ".rest"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "restructuredtext",
+        "path": "./snippets/requirements.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "test:unit": "jest"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vscode/test-electron": "^2.3.0",
+    "eslint": "^8.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/martinpalsson/rigr"
+  },
+  "license": "MIT"
+}
