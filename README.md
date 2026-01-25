@@ -14,8 +14,10 @@ Rigr is heavily vibe-coded but there is a requirement base for it in
 docs/examples/requirements which serves both as an example and instruction
 to (in my case) claude code.
 
-
-
+## Plan before release to VS Code Marketplace
+- [ ] Debug currently developed features thuroughly.
+- [ ] Work through docs/examples/requirements (too much slop right now).
+- [ ] Connect existing tests to requirements in docs/examples/requirements
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.80+-blue.svg)](https://code.visualstudio.com/)
