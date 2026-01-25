@@ -772,8 +772,8 @@ class CodeDirective(SphinxDirective):
             title_node['classes'] = ['rigr-title']
             container += title_node
 
-        # === Metadata table (per 00309) - ID and relationships ===
-        metadata_rows = self._build_metadata_rows(config, code_id)
+        # === Metadata table (per 00309) - ID, language, and relationships ===
+        metadata_rows = self._build_metadata_rows(config, code_id, language)
         if metadata_rows:
             table = nodes.table()
             table['classes'] = ['rigr-metadata-table']
@@ -834,12 +834,15 @@ class CodeDirective(SphinxDirective):
 
         return [container]
 
-    def _build_metadata_rows(self, config: Any, code_id: str) -> List[tuple]:
+    def _build_metadata_rows(self, config: Any, code_id: str, language: str) -> List[tuple]:
         """Build list of (field_name, field_value, field_class) tuples for metadata table."""
         rows = []
 
         if code_id:
             rows.append(('ID', code_id, 'rigr-id'))
+
+        if language and language != 'text':
+            rows.append(('Language', language, 'rigr-language'))
 
         # Link fields
         link_types = getattr(config, 'rigr_link_types', [])
