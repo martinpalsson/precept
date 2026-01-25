@@ -152,6 +152,14 @@ rigr_link_types = [
         "incoming": "blocks",
         "outgoing": "depends_on",
     },
+
+    # Rationale justification (custom link type for testing)
+    {
+        "option": "justifies",
+        "incoming": "justified_by",
+        "outgoing": "justifies",
+        "style": "#FF6600",  # Orange lines
+    },
 ]
 
 # =============================================================================

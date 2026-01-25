@@ -37,7 +37,7 @@ Stakeholder Requirements
    :type: rationale
    :level: stakeholder
    :status: approved
-   :derives_from: 00001
+   :justifies: 00001
 
    Sphinx conf.py is chosen as the primary configuration source because:
 
