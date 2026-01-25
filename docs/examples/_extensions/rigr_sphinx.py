@@ -805,6 +805,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value('rigr_link_types', [], 'env')
     app.add_config_value('rigr_statuses', [], 'env')
     app.add_config_value('rigr_extra_options', [], 'env')
+    app.add_config_value('rigr_custom_fields', {}, 'env')
     app.add_config_value('rigr_default_status', 'draft', 'env')
     app.add_config_value('rigr_id_config', {}, 'env')
 

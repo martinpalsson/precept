@@ -15,6 +15,8 @@ import {
   IdConfig,
   LinkType,
   Status,
+  CustomFields,
+  CustomFieldValue,
   ConfigLoadResult,
 } from '../types';
 import { DEFAULT_CONFIG, buildIdRegex } from './defaults';
@@ -49,6 +51,7 @@ try:
         'rigr_id_config': getattr(conf, 'rigr_id_config', None),
         'rigr_link_types': getattr(conf, 'rigr_link_types', []),
         'rigr_statuses': getattr(conf, 'rigr_statuses', []),
+        'rigr_custom_fields': getattr(conf, 'rigr_custom_fields', {}),
         'rigr_id_regex': getattr(conf, 'rigr_id_regex', None),
         'rigr_relationships': getattr(conf, 'rigr_relationships', None),
         # Legacy support
@@ -100,6 +103,7 @@ function parseRawConfig(raw: {
   rigr_id_config?: Record<string, unknown> | null;
   rigr_link_types?: Array<Record<string, unknown>>;
   rigr_statuses?: Array<Record<string, unknown>>;
+  rigr_custom_fields?: Record<string, Array<Record<string, unknown>>>;
   rigr_id_regex?: string;
   rigr_relationships?: Record<string, string>;
   rigr_id_prefixes?: Array<Record<string, unknown>>; // Legacy
@@ -138,6 +142,19 @@ function parseRawConfig(raw: {
     color: s.color ? String(s.color) : undefined,
   })).filter(s => s.status);
 
+  // Parse custom fields
+  const customFields: CustomFields = {};
+  if (raw.rigr_custom_fields && typeof raw.rigr_custom_fields === 'object') {
+    for (const [fieldName, values] of Object.entries(raw.rigr_custom_fields)) {
+      if (Array.isArray(values)) {
+        customFields[fieldName] = values.map((v): CustomFieldValue => ({
+          value: String(v.value || ''),
+          title: String(v.title || v.value || ''),
+        })).filter(v => v.value);
+      }
+    }
+  }
+
   // Build ID regex from idConfig
   const id_regex = buildIdRegex(idConfig);
 
@@ -147,6 +164,7 @@ function parseRawConfig(raw: {
     idConfig,
     linkTypes: linkTypes.length > 0 ? linkTypes : DEFAULT_CONFIG.linkTypes,
     statuses: statuses.length > 0 ? statuses : DEFAULT_CONFIG.statuses,
+    customFields,
     id_regex,
     traceability_item_id_regex: raw.rigr_id_regex,
     traceability_relationships: raw.rigr_relationships,

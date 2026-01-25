@@ -2,7 +2,7 @@
  * Default configuration when conf.py is not found or parsing fails
  */
 
-import { RigrConfig, ObjectType, Level, IdConfig, LinkType, Status } from '../types';
+import { RigrConfig, ObjectType, Level, IdConfig, LinkType, Status, CustomFields } from '../types';
 
 export const DEFAULT_OBJECT_TYPES: ObjectType[] = [
   {
@@ -94,6 +94,11 @@ export const DEFAULT_STATUSES: Status[] = [
 ];
 
 /**
+ * Default custom fields (empty - user defines their own)
+ */
+export const DEFAULT_CUSTOM_FIELDS: CustomFields = {};
+
+/**
  * Build ID regex from IdConfig
  */
 export function buildIdRegex(idConfig: IdConfig): RegExp {
@@ -116,6 +121,7 @@ export const DEFAULT_CONFIG: RigrConfig = {
   idConfig: DEFAULT_ID_CONFIG,
   linkTypes: DEFAULT_LINK_TYPES,
   statuses: DEFAULT_STATUSES,
+  customFields: DEFAULT_CUSTOM_FIELDS,
   id_regex: DEFAULT_ID_REGEX,
 };
 
@@ -172,6 +178,21 @@ export function getLevelInfo(config: RigrConfig, level: string): Level | undefin
  */
 export function getStatusInfo(config: RigrConfig, status: string): Status | undefined {
   return config.statuses.find(s => s.status === status);
+}
+
+/**
+ * Get all custom field names from configuration
+ */
+export function getCustomFieldNames(config: RigrConfig): string[] {
+  return Object.keys(config.customFields || {});
+}
+
+/**
+ * Get valid values for a custom field
+ */
+export function getCustomFieldValues(config: RigrConfig, fieldName: string): string[] {
+  const field = config.customFields?.[fieldName];
+  return field ? field.map(v => v.value) : [];
 }
 
 /**

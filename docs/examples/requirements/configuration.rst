@@ -367,6 +367,70 @@ Status Configuration
    - implemented: Implementation complete
    - deprecated: No longer valid
 
+Custom Fields Configuration
+===========================
+
+.. item:: User-defined custom fields with enumerated values
+   :id: 00324
+   :type: requirement
+   :level: stakeholder
+   :status: draft
+
+   As a requirements engineer I want to be able to define custom fields
+   (e.g., product, priority, component) with a predefined list of valid
+   values, such that IntelliSense provides suggestions when editing these
+   fields and documentation remains consistent.
+
+.. item:: Custom fields configuration structure
+   :id: 00325
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00324
+
+   The extension shall support a ``rigr_custom_fields`` configuration
+   in conf.py that maps field names to lists of valid values. Each value
+   entry shall have:
+
+   - value: The string value used in RST (e.g., "widget-pro")
+   - title: Display name for documentation (e.g., "Widget Pro")
+
+   Example::
+
+      rigr_custom_fields = {
+          "product": [
+              {"value": "widget-pro", "title": "Widget Pro"},
+              {"value": "widget-lite", "title": "Widget Lite"},
+          ],
+          "priority": [
+              {"value": "high", "title": "High"},
+              {"value": "medium", "title": "Medium"},
+              {"value": "low", "title": "Low"},
+          ],
+      }
+
+.. item:: Custom field IntelliSense completion
+   :id: 00326
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00324
+
+   When editing an item directive and the cursor is on a custom field
+   line (e.g., ``:product:``), the extension shall provide completion
+   suggestions for all valid values defined in ``rigr_custom_fields``.
+
+.. item:: Custom field directive acceptance
+   :id: 00327
+   :type: requirement
+   :level: system
+   :status: draft
+   :satisfies: 00324
+
+   The Sphinx extension shall accept any custom field defined in
+   ``rigr_custom_fields`` as a valid option on item directives,
+   without requiring code changes.
+
 ID Configuration
 ================
 

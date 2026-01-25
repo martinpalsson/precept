@@ -60,6 +60,19 @@ export interface Status {
 }
 
 /**
+ * Custom field value definition from rigr_custom_fields in conf.py
+ */
+export interface CustomFieldValue {
+  value: string;      // The value used in RST (e.g., "widget-pro")
+  title: string;      // Display name (e.g., "Widget Pro")
+}
+
+/**
+ * Custom fields configuration mapping field names to valid values
+ */
+export type CustomFields = Record<string, CustomFieldValue[]>;
+
+/**
  * Complete Rigr configuration loaded from conf.py
  */
 export interface RigrConfig {
@@ -68,6 +81,7 @@ export interface RigrConfig {
   idConfig: IdConfig;           // ID generation configuration
   linkTypes: LinkType[];
   statuses: Status[];
+  customFields: CustomFields;   // Custom fields with enumerated values (e.g., product, priority)
   id_regex: RegExp;             // Pattern for project-unique IDs (e.g., /\d{4}/g or /[A-Z]+-\d{4}/g)
   // Melexis.trace configuration (optional)
   traceability_item_id_regex?: string;

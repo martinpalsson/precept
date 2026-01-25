@@ -201,14 +201,48 @@ rigr_statuses = [
 # Default status for new requirements
 rigr_default_status = "draft"
 
-# Extra options available on all item types
+# Extra options available on all item types (free text, no IntelliSense)
 rigr_extra_options = [
-    "priority",      # e.g., :priority: high
-    "complexity",    # e.g., :complexity: medium
     "author",        # e.g., :author: John Doe
     "version",       # e.g., :version: 1.0
     "baseline",      # e.g., :baseline: v1.0.0
 ]
+
+# =============================================================================
+# CUSTOM FIELDS (rigr_custom_fields)
+# =============================================================================
+# Define custom fields with enumerated values for IntelliSense support.
+# Each field maps to a list of valid values with display titles.
+#
+# Fields:
+#   - value: The string value used in RST (e.g., :product: widget-pro)
+#   - title: Display name shown in IntelliSense and documentation
+# =============================================================================
+
+rigr_custom_fields = {
+    # Example: Product/component assignment
+    "product": [
+        {"value": "widget-pro", "title": "Widget Pro"},
+        {"value": "widget-lite", "title": "Widget Lite"},
+        {"value": "platform", "title": "Platform Core"},
+    ],
+
+    # Example: Priority levels
+    "priority": [
+        {"value": "critical", "title": "Critical"},
+        {"value": "high", "title": "High"},
+        {"value": "medium", "title": "Medium"},
+        {"value": "low", "title": "Low"},
+    ],
+
+    # Example: Complexity estimation
+    "complexity": [
+        {"value": "trivial", "title": "Trivial"},
+        {"value": "simple", "title": "Simple"},
+        {"value": "moderate", "title": "Moderate"},
+        {"value": "complex", "title": "Complex"},
+    ],
+}
 
 # =============================================================================
 # HTML OUTPUT CONFIGURATION
@@ -1101,6 +1135,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value('rigr_link_types', [], 'env')
     app.add_config_value('rigr_statuses', [], 'env')
     app.add_config_value('rigr_extra_options', [], 'env')
+    app.add_config_value('rigr_custom_fields', {}, 'env')
     app.add_config_value('rigr_default_status', 'draft', 'env')
     app.add_config_value('rigr_id_config', {}, 'env')
 

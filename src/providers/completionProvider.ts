@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import { IndexBuilder } from '../indexing/indexBuilder';
 import { RigrConfig, RequirementObject, Level } from '../types';
 import { isInLinkContext, isInInlineItemContext } from '../indexing/rstParser';
-import { getLinkOptionNames, getStatusNames, getObjectTypeInfo, getLevelInfo } from '../configuration/defaults';
+import { getLinkOptionNames, getStatusNames, getObjectTypeInfo, getLevelInfo, getCustomFieldNames, getCustomFieldValues } from '../configuration/defaults';
 import { generateNextId } from '../utils/idGenerator';
 
 /**
@@ -512,6 +512,27 @@ function createStatusCompletions(
 }
 
 /**
+ * Create completions for custom field values
+ */
+function createCustomFieldCompletions(
+  config: RigrConfig,
+  fieldName: string,
+  replaceRange: vscode.Range | null
+): vscode.CompletionItem[] {
+  const fieldValues = config.customFields?.[fieldName] || [];
+  return fieldValues.map((fieldValue, index) => {
+    const item = new vscode.CompletionItem(fieldValue.value, vscode.CompletionItemKind.EnumMember);
+    item.detail = fieldValue.title;
+    item.documentation = `Set ${fieldName} to "${fieldValue.value}"`;
+    item.sortText = String(index).padStart(3, '0');
+    if (replaceRange) {
+      item.range = replaceRange;
+    }
+    return item;
+  });
+}
+
+/**
  * Completion provider for requirement IDs
  */
 export class RequirementCompletionProvider implements vscode.CompletionItemProvider {
@@ -554,6 +575,11 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
         case 'status':
           return createStatusCompletions(this.config, attrContext.replaceRange);
         default:
+          // Check if it's a custom field with defined values
+          const customFieldNames = getCustomFieldNames(this.config);
+          if (customFieldNames.includes(attrContext.attributeName)) {
+            return createCustomFieldCompletions(this.config, attrContext.attributeName, attrContext.replaceRange);
+          }
           // For link attributes, provide ID completions
           const linkOptions = getLinkOptionNames(this.config);
           if (linkOptions.includes(attrContext.attributeName)) {
