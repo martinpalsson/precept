@@ -45,6 +45,13 @@ export class RequirementTreeItem extends vscode.TreeItem {
   ) {
     super(label, collapsibleState);
 
+    // Set unique ID for tree item identification (needed for reveal to work)
+    if (requirement) {
+      this.id = `req-${requirement.id}`;
+    } else if (groupType && groupValue !== undefined) {
+      this.id = `group-${groupType}-${groupValue}`;
+    }
+
     if (requirement) {
       // This is a requirement item
       this.contextValue = 'requirement';
@@ -180,6 +187,69 @@ export class RequirementTreeDataProvider implements vscode.TreeDataProvider<Requ
    */
   getTreeItem(element: RequirementTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  /**
+   * Get parent of a tree item (needed for reveal to work)
+   */
+  getParent(element: RequirementTreeItem): RequirementTreeItem | null {
+    if (element.requirement) {
+      // This is a requirement item, find its parent group
+      const groupBy = getTreeViewGroupBy();
+      const req = element.requirement;
+
+      let groupValue: string;
+      let groupType: 'type' | 'level' | 'file' | 'status' | 'orphaned';
+
+      switch (groupBy) {
+        case 'type':
+          groupType = 'type';
+          groupValue = req.type;
+          break;
+        case 'level':
+          groupType = 'level';
+          groupValue = req.level || 'unassigned';
+          break;
+        case 'file':
+          groupType = 'file';
+          groupValue = req.location.file;
+          break;
+        case 'status':
+          groupType = 'status';
+          groupValue = req.status || 'unset';
+          break;
+        default:
+          groupType = 'type';
+          groupValue = req.type;
+      }
+
+      // Get the title for the group
+      let title: string;
+      if (groupType === 'type') {
+        const typeInfo = this.config.objectTypes.find(t => t.type === groupValue);
+        title = typeInfo?.title || groupValue;
+      } else if (groupType === 'level') {
+        const levelInfo = this.config.levels.find(l => l.level === groupValue);
+        title = levelInfo?.title || (groupValue === 'unassigned' ? 'Unassigned' : groupValue);
+      } else if (groupType === 'file') {
+        title = vscode.workspace.asRelativePath(groupValue);
+      } else if (groupType === 'status') {
+        title = groupValue.charAt(0).toUpperCase() + groupValue.slice(1);
+      } else {
+        title = groupValue;
+      }
+
+      return new RequirementTreeItem(
+        title,
+        vscode.TreeItemCollapsibleState.Expanded,
+        undefined,
+        groupType,
+        groupValue
+      );
+    }
+
+    // Group items are at root level, no parent
+    return null;
   }
 
   /**
