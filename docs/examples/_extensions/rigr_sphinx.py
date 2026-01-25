@@ -28,6 +28,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class DynamicOptionSpec(dict):
+    """
+    A dict subclass that returns directives.unchanged for any missing key.
+    This allows directives to accept custom options defined in conf.py
+    (e.g., custom link types) without hardcoding them in option_spec.
+    """
+    def __missing__(self, key):
+        return directives.unchanged
+
+
 def init_rigr_data(app: Sphinx) -> None:
     """Initialize rigr data storage in the environment."""
     if not hasattr(app.env, 'rigr_items'):
@@ -279,28 +289,16 @@ class ItemDirective(SphinxDirective):
     optional_arguments = 0
     final_argument_whitespace = True
 
-    # Core options
-    option_spec = {
+    # Use DynamicOptionSpec to accept any option, including custom link types
+    # defined in conf.py. Core options are listed for documentation purposes.
+    option_spec = DynamicOptionSpec({
         'id': directives.unchanged,
         'type': directives.unchanged,
         'level': directives.unchanged,
         'status': directives.unchanged,
         'value': directives.unchanged,  # Parameter value for :paramval: references
         'term': directives.unchanged,   # Term text for :termref: references
-        # Link options (populated dynamically from config)
-        'satisfies': directives.unchanged,
-        'implements': directives.unchanged,
-        'derives_from': directives.unchanged,
-        'tests': directives.unchanged,
-        'links': directives.unchanged,
-        'depends_on': directives.unchanged,
-        # Extra options
-        'priority': directives.unchanged,
-        'complexity': directives.unchanged,
-        'author': directives.unchanged,
-        'version': directives.unchanged,
-        'baseline': directives.unchanged,
-    }
+    })
 
     def run(self) -> List[nodes.Node]:
         """Process the item directive and return docutils nodes."""
@@ -494,20 +492,14 @@ class GraphicDirective(SphinxDirective):
     optional_arguments = 1
     final_argument_whitespace = True
 
-    option_spec = {
+    # Use DynamicOptionSpec to accept custom link types from conf.py
+    option_spec = DynamicOptionSpec({
         'id': directives.unchanged,
         'file': directives.unchanged,
         'alt': directives.unchanged,
         'scale': directives.unchanged,
         'caption': directives.unchanged,
-        # Link options for traceability
-        'satisfies': directives.unchanged,
-        'implements': directives.unchanged,
-        'derives_from': directives.unchanged,
-        'tests': directives.unchanged,
-        'links': directives.unchanged,
-        'depends_on': directives.unchanged,
-    }
+    })
 
     def run(self) -> List[nodes.Node]:
         """Process the graphic directive and return docutils nodes."""
@@ -684,18 +676,12 @@ class CodeDirective(SphinxDirective):
     optional_arguments = 1
     final_argument_whitespace = True
 
-    option_spec = {
+    # Use DynamicOptionSpec to accept custom link types from conf.py
+    option_spec = DynamicOptionSpec({
         'id': directives.unchanged,
         'language': directives.unchanged,
         'caption': directives.unchanged,
-        # Link options for traceability
-        'satisfies': directives.unchanged,
-        'implements': directives.unchanged,
-        'derives_from': directives.unchanged,
-        'tests': directives.unchanged,
-        'links': directives.unchanged,
-        'depends_on': directives.unchanged,
-    }
+    })
 
     def run(self) -> List[nodes.Node]:
         """Process the code directive and return docutils nodes."""
