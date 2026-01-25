@@ -1184,6 +1184,10 @@ export const RIGR_CSS_TEMPLATE = `/* ===========================================
     border-left: 4px solid #0097a7;
 }
 
+.rigr-type-term {
+    border-left: 4px solid #98D8AA;
+}
+
 .rigr-type-design_element {
     border-left: 4px solid #455a64;
 }

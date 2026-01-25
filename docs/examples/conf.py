@@ -51,6 +51,7 @@ rigr_object_types = [
     {"type": "rationale", "title": "Rationale"},
     {"type": "information", "title": "Information"},
     {"type": "parameter", "title": "Parameter"},
+    {"type": "term", "title": "Term"},
     {"type": "graphic", "title": "Graphic"},
     {"type": "code", "title": "Code"},
     {"type": "design_element", "title": "Design Element"},
