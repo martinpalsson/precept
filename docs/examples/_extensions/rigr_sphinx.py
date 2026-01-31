@@ -539,6 +539,8 @@ class GraphicDirective(SphinxDirective):
         'alt': directives.unchanged,
         'scale': directives.unchanged,
         'caption': directives.unchanged,
+        'level': directives.unchanged,
+        'status': directives.unchanged,
     })
 
     def run(self) -> List[nodes.Node]:
@@ -550,6 +552,8 @@ class GraphicDirective(SphinxDirective):
         title = ' '.join(self.arguments) if self.arguments else ''
         graphic_id = self.options.get('id', '')
         caption = self.options.get('caption', '')
+        level = self.options.get('level', '')
+        status = self.options.get('status', getattr(config, 'rigr_default_status', 'draft'))
 
         # Collect outgoing links for incoming link resolution
         collect_item_links(env, graphic_id, self.options, config, env.docname)
@@ -558,30 +562,80 @@ class GraphicDirective(SphinxDirective):
 
         # Create container
         container = nodes.container()
-        container['classes'] = ['rigr-graphic']
+        container['classes'] = ['rigr-graphic', f'rigr-status-{status}']
         if graphic_id:
             container['ids'] = [f'fig-{graphic_id}']
 
-        # === Title as header (per 00305) ===
-        if title:
-            title_node = nodes.rubric(text=title)
-            title_node['classes'] = ['rigr-title']
-            container += title_node
+        # === Title with ID on the left (per issue #11) ===
+        title_node = nodes.rubric()
+        title_node['classes'] = ['rigr-title']
+        if graphic_id:
+            id_span = nodes.inline(text=graphic_id)
+            id_span['classes'] = ['rigr-title-id']
+            title_node += id_span
+            title_node += nodes.inline(text=' ')
+        title_node += nodes.inline(text=title if title else 'Graphic')
+        container += title_node
 
-        # === Metadata table (per 00305) - ID and relationships ===
-        metadata_rows = self._build_metadata_rows(config, graphic_id)
+        # === Content wrapper: body on left, metadata on right (per issue #11) ===
+        content_wrapper = nodes.container()
+        content_wrapper['classes'] = ['rigr-content-wrapper']
+
+        # === Graphic content (on the left) ===
+        body = nodes.container()
+        body['classes'] = ['rigr-body']
+
+        if file_path:
+            img_container = nodes.container()
+            img_container['classes'] = ['rigr-graphic-image', 'rigr-clickable']
+            rst_lines = ViewList()
+            rst_lines.append(f'.. image:: {file_path}', '<graphic>')
+            if alt_text:
+                rst_lines.append(f'   :alt: {alt_text}', '<graphic>')
+            if 'scale' in self.options:
+                rst_lines.append(f'   :scale: {self.options["scale"]}', '<graphic>')
+            self.state.nested_parse(rst_lines, 0, img_container)
+            body += img_container
+        elif self.content:
+            content_text = '\n'.join(self.content)
+            if '@startuml' in content_text or '@startmindmap' in content_text or '@startgantt' in content_text:
+                uml_container = nodes.container()
+                uml_container['classes'] = ['rigr-graphic-uml']
+                rst_lines = ViewList()
+                rst_lines.append('.. uml::', '<graphic>')
+                rst_lines.append('', '<graphic>')
+                for line in self.content:
+                    rst_lines.append('   ' + line, '<graphic>')
+                self.state.nested_parse(rst_lines, 0, uml_container)
+                body += uml_container
+            else:
+                self.state.nested_parse(self.content, self.content_offset, body)
+
+        # Add caption inside body if present
+        if caption:
+            caption_node = nodes.container()
+            caption_node['classes'] = ['rigr-graphic-caption']
+            caption_para = nodes.paragraph(text=caption)
+            caption_node += caption_para
+            body += caption_node
+
+        content_wrapper += body
+
+        # === Metadata table (on the right, compact) ===
+        metadata_rows = self._build_metadata_rows(config, graphic_id, level, status)
         if metadata_rows:
+            metadata_wrapper = nodes.container()
+            metadata_wrapper['classes'] = ['rigr-metadata-wrapper']
+
             table = nodes.table()
             table['classes'] = ['rigr-metadata-table']
 
             tgroup = nodes.tgroup(cols=2)
             table += tgroup
 
-            # Column specs
-            tgroup += nodes.colspec(colwidth=30)
-            tgroup += nodes.colspec(colwidth=70)
+            tgroup += nodes.colspec(colwidth=40)
+            tgroup += nodes.colspec(colwidth=60)
 
-            # Table body
             tbody = nodes.tbody()
             tgroup += tbody
 
@@ -589,17 +643,14 @@ class GraphicDirective(SphinxDirective):
                 row = nodes.row()
                 tbody += row
 
-                # Field name cell
                 entry1 = nodes.entry()
                 entry1 += nodes.paragraph(text=field_name)
                 row += entry1
 
-                # Field value cell
                 entry2 = nodes.entry()
                 entry2['classes'] = [f'rigr-field-{field_name.lower().replace(" ", "-")}']
                 value_para = nodes.paragraph()
 
-                # If this is a link field, create clickable references
                 if is_link and field_value:
                     ids = [id.strip() for id in field_value.split(',')]
                     for i, linked_id in enumerate(ids):
@@ -618,63 +669,35 @@ class GraphicDirective(SphinxDirective):
                 entry2 += value_para
                 row += entry2
 
-            container += table
+            metadata_wrapper += table
+            content_wrapper += metadata_wrapper
 
-        # === Actual graphic - clickable, full-width (per 00305) ===
-        content = nodes.container()
-        content['classes'] = ['rigr-graphic-content']
-
-        if file_path:
-            # Use Sphinx's image directive to properly handle image paths
-            # This ensures the image gets copied to _build/html/_images/
-            img_container = nodes.container()
-            img_container['classes'] = ['rigr-graphic-image', 'rigr-clickable']
-            rst_lines = ViewList()
-            rst_lines.append(f'.. image:: {file_path}', '<graphic>')
-            if alt_text:
-                rst_lines.append(f'   :alt: {alt_text}', '<graphic>')
-            if 'scale' in self.options:
-                rst_lines.append(f'   :scale: {self.options["scale"]}', '<graphic>')
-            self.state.nested_parse(rst_lines, 0, img_container)
-            content += img_container
-        elif self.content:
-            # Check if content is PlantUML
-            content_text = '\n'.join(self.content)
-            if '@startuml' in content_text or '@startmindmap' in content_text or '@startgantt' in content_text:
-                # Use the uml directive from sphinxcontrib-plantuml
-                uml_container = nodes.container()
-                uml_container['classes'] = ['rigr-graphic-uml']
-                # Build ViewList with uml directive wrapping the content
-                rst_lines = ViewList()
-                rst_lines.append('.. uml::', '<graphic>')
-                rst_lines.append('', '<graphic>')
-                for line in self.content:
-                    rst_lines.append('   ' + line, '<graphic>')
-                self.state.nested_parse(rst_lines, 0, uml_container)
-                content += uml_container
-            else:
-                # Regular content
-                self.state.nested_parse(self.content, self.content_offset, content)
-
-        container += content
-
-        # === Caption (per 00305) ===
-        if caption:
-            caption_node = nodes.container()
-            caption_node['classes'] = ['rigr-graphic-caption']
-            caption_para = nodes.paragraph(text=caption)
-            caption_node += caption_para
-            container += caption_node
+        container += content_wrapper
 
         return [container]
 
-    def _build_metadata_rows(self, config: Any, graphic_id: str) -> List[tuple]:
+    def _get_level_title(self, config: Any, level: str) -> str:
+        """Get display title for a level from config."""
+        levels = getattr(config, 'rigr_levels', [])
+        for lv in levels:
+            if lv.get('level') == level:
+                return lv.get('title', level.title())
+        return level.title()
+
+    def _build_metadata_rows(self, config: Any, graphic_id: str, level: str, status: str) -> List[tuple]:
         """Build list of (field_name, field_value, field_class, is_link) tuples for metadata table."""
         rows = []
 
-        # ID (per 00305)
-        if graphic_id:
-            rows.append(('ID', graphic_id, 'rigr-id', False))
+        # Type is always "Graphic"
+        rows.append(('Type', 'Graphic', None, False))
+
+        # Level
+        if level:
+            level_title = self._get_level_title(config, level)
+            rows.append(('Level', level_title, None, False))
+
+        # Status
+        rows.append(('Status', status.title(), None, False))
 
         # Link fields - all incoming and outgoing relationships (clickable per issue #9)
         link_types = getattr(config, 'rigr_link_types', [])
@@ -682,13 +705,19 @@ class GraphicDirective(SphinxDirective):
 
         for opt in link_options:
             if opt in self.options and self.options[opt]:
-                # Get display label from config
                 label = opt.replace('_', ' ').title()
                 for lt in link_types:
                     if lt.get('option') == opt:
                         label = lt.get('outgoing', opt).replace('_', ' ').title()
                         break
                 rows.append((label, self.options[opt], None, True))
+
+        # Extra options (free text)
+        extra_options = getattr(config, 'rigr_extra_options', [])
+        for opt in extra_options:
+            if opt in self.options and self.options[opt]:
+                label = opt.replace('_', ' ').title()
+                rows.append((label, self.options[opt], None, False))
 
         return rows
 
@@ -731,6 +760,8 @@ class CodeDirective(SphinxDirective):
         'id': directives.unchanged,
         'language': directives.unchanged,
         'caption': directives.unchanged,
+        'level': directives.unchanged,
+        'status': directives.unchanged,
     })
 
     def run(self) -> List[nodes.Node]:
@@ -743,33 +774,73 @@ class CodeDirective(SphinxDirective):
         code_id = self.options.get('id', '')
         caption = self.options.get('caption', '')
         language = self.options.get('language', 'text')
+        level = self.options.get('level', '')
+        status = self.options.get('status', getattr(config, 'rigr_default_status', 'draft'))
 
         # Collect outgoing links for incoming link resolution
         collect_item_links(env, code_id, self.options, config, env.docname)
 
         # Create container
         container = nodes.container()
-        container['classes'] = ['rigr-code']
+        container['classes'] = ['rigr-code', f'rigr-status-{status}']
         if code_id:
             container['ids'] = [f'code-{code_id}']
 
-        # === Title as header (per 00309) ===
-        if title:
-            title_node = nodes.rubric(text=title)
-            title_node['classes'] = ['rigr-title']
-            container += title_node
+        # === Title with ID on the left (per issue #11) ===
+        title_node = nodes.rubric()
+        title_node['classes'] = ['rigr-title']
+        if code_id:
+            id_span = nodes.inline(text=code_id)
+            id_span['classes'] = ['rigr-title-id']
+            title_node += id_span
+            title_node += nodes.inline(text=' ')
+        title_node += nodes.inline(text=title if title else 'Code')
+        container += title_node
 
-        # === Metadata table (per 00309) - ID, language, and relationships ===
-        metadata_rows = self._build_metadata_rows(config, code_id, language)
+        # === Content wrapper: body on left, metadata on right (per issue #11) ===
+        content_wrapper = nodes.container()
+        content_wrapper['classes'] = ['rigr-content-wrapper']
+
+        # === Code content (on the left) ===
+        body = nodes.container()
+        body['classes'] = ['rigr-body']
+
+        if self.content:
+            code_content = nodes.container()
+            code_content['classes'] = ['rigr-code-content']
+
+            rst_lines = ViewList()
+            rst_lines.append(f'.. code-block:: {language}', '<code>')
+            rst_lines.append('', '<code>')
+            for line in self.content:
+                rst_lines.append('   ' + line, '<code>')
+            self.state.nested_parse(rst_lines, 0, code_content)
+            body += code_content
+
+        # Add caption inside body if present
+        if caption:
+            caption_node = nodes.container()
+            caption_node['classes'] = ['rigr-code-caption']
+            caption_para = nodes.paragraph(text=caption)
+            caption_node += caption_para
+            body += caption_node
+
+        content_wrapper += body
+
+        # === Metadata table (on the right, compact) ===
+        metadata_rows = self._build_metadata_rows(config, code_id, language, level, status)
         if metadata_rows:
+            metadata_wrapper = nodes.container()
+            metadata_wrapper['classes'] = ['rigr-metadata-wrapper']
+
             table = nodes.table()
             table['classes'] = ['rigr-metadata-table']
 
             tgroup = nodes.tgroup(cols=2)
             table += tgroup
 
-            tgroup += nodes.colspec(colwidth=30)
-            tgroup += nodes.colspec(colwidth=70)
+            tgroup += nodes.colspec(colwidth=40)
+            tgroup += nodes.colspec(colwidth=60)
 
             tbody = nodes.tbody()
             tgroup += tbody
@@ -786,7 +857,6 @@ class CodeDirective(SphinxDirective):
                 entry2['classes'] = [f'rigr-field-{field_name.lower().replace(" ", "-")}']
                 value_para = nodes.paragraph()
 
-                # If this is a link field, create clickable references
                 if is_link and field_value:
                     ids = [id.strip() for id in field_value.split(',')]
                     for i, linked_id in enumerate(ids):
@@ -805,41 +875,39 @@ class CodeDirective(SphinxDirective):
                 entry2 += value_para
                 row += entry2
 
-            container += table
+            metadata_wrapper += table
+            content_wrapper += metadata_wrapper
 
-        # === Code block with syntax highlighting (per 00309) ===
-        if self.content:
-            code_content = nodes.container()
-            code_content['classes'] = ['rigr-code-content']
-
-            # Use Sphinx code-block directive for proper highlighting
-            rst_lines = ViewList()
-            rst_lines.append(f'.. code-block:: {language}', '<code>')
-            rst_lines.append('', '<code>')
-            for line in self.content:
-                rst_lines.append('   ' + line, '<code>')
-            self.state.nested_parse(rst_lines, 0, code_content)
-            container += code_content
-
-        # === Caption (per 00309) ===
-        if caption:
-            caption_node = nodes.container()
-            caption_node['classes'] = ['rigr-code-caption']
-            caption_para = nodes.paragraph(text=caption)
-            caption_node += caption_para
-            container += caption_node
+        container += content_wrapper
 
         return [container]
 
-    def _build_metadata_rows(self, config: Any, code_id: str, language: str) -> List[tuple]:
+    def _get_level_title(self, config: Any, level: str) -> str:
+        """Get display title for a level from config."""
+        levels = getattr(config, 'rigr_levels', [])
+        for lv in levels:
+            if lv.get('level') == level:
+                return lv.get('title', level.title())
+        return level.title()
+
+    def _build_metadata_rows(self, config: Any, code_id: str, language: str, level: str, status: str) -> List[tuple]:
         """Build list of (field_name, field_value, field_class, is_link) tuples for metadata table."""
         rows = []
 
-        if code_id:
-            rows.append(('ID', code_id, 'rigr-id', False))
+        # Type is always "Code"
+        rows.append(('Type', 'Code', None, False))
 
+        # Language
         if language and language != 'text':
             rows.append(('Language', language, 'rigr-language', False))
+
+        # Level
+        if level:
+            level_title = self._get_level_title(config, level)
+            rows.append(('Level', level_title, None, False))
+
+        # Status
+        rows.append(('Status', status.title(), None, False))
 
         # Link fields (clickable per issue #9)
         link_types = getattr(config, 'rigr_link_types', [])
@@ -853,6 +921,13 @@ class CodeDirective(SphinxDirective):
                         label = lt.get('outgoing', opt).replace('_', ' ').title()
                         break
                 rows.append((label, self.options[opt], None, True))
+
+        # Extra options (free text)
+        extra_options = getattr(config, 'rigr_extra_options', [])
+        for opt in extra_options:
+            if opt in self.options and self.options[opt]:
+                label = opt.replace('_', ' ').title()
+                rows.append((label, self.options[opt], None, False))
 
         return rows
 
