@@ -69,12 +69,24 @@
 .rigr-graphic .rigr-title,
 .rigr-code .rigr-title {
     margin: 0;
-    padding: 0.75em 1em;
+    padding: 0.5em 0.75em;
     background: var(--rigr-bg-header);
     border-bottom: 1px solid var(--rigr-border-color);
     font-size: 1.1em;
     font-weight: 600;
     color: var(--rigr-text-primary);
+}
+
+/* ID displayed in title (per issue #9) */
+.rigr-title-id {
+    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-weight: 600;
+    color: var(--rigr-id-color);
+    background: var(--rigr-id-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    margin-right: 0.3em;
 }
 
 /* -----------------------------------------------------------------------------
@@ -99,29 +111,54 @@
 }
 
 /* -----------------------------------------------------------------------------
-   Metadata Table - per 00300, 00305
-   Contains: ID, Type, Level, Status, relationships
+   Content Wrapper - body on left, metadata on right (per issue #9)
+   ----------------------------------------------------------------------------- */
+.rigr-content-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.rigr-body {
+    flex: 1 1 70%;
+    min-width: 300px;
+    padding: 0.75em;
+    background: var(--rigr-bg-content);
+    color: var(--rigr-text-primary);
+}
+
+.rigr-metadata-wrapper {
+    flex: 0 0 auto;
+    width: 25%;
+    min-width: 180px;
+    max-width: 280px;
+    background: var(--rigr-bg-light);
+    border-left: 1px solid var(--rigr-border-color);
+}
+
+/* -----------------------------------------------------------------------------
+   Metadata Table - compact styling (per issue #9)
    ----------------------------------------------------------------------------- */
 .rigr-metadata-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9em;
+    font-size: 0.8em;
     margin: 0;
     background: transparent;
 }
 
 .rigr-metadata-table td {
-    padding: 0.4em 1em;
+    padding: 0.25em 0.5em;
     border-bottom: 1px solid var(--rigr-border-color);
     vertical-align: top;
     color: var(--rigr-text-primary);
 }
 
 .rigr-metadata-table td:first-child {
-    width: 30%;
+    width: 40%;
     font-weight: 500;
     color: var(--rigr-text-secondary);
-    background: var(--rigr-bg-header);
+    white-space: nowrap;
 }
 
 .rigr-metadata-table td:last-child {
@@ -132,63 +169,19 @@
     border-bottom: none;
 }
 
-/* -----------------------------------------------------------------------------
-   Status Badges
-   Colors match conf.py rigr_statuses configuration
-   ----------------------------------------------------------------------------- */
-.rigr-status-badge {
-    display: inline-block;
-    padding: 0.2em 0.6em;
-    border-radius: 3px;
-    font-size: 0.85em;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+/* Clickable link references (per issue #9) */
+.rigr-link-ref {
+    color: var(--rigr-id-color);
+    text-decoration: none;
 }
 
-.rigr-status-badge.rigr-status-draft {
-    background: #FFEB3B;
-    color: #5d4037;
-}
-
-.rigr-status-badge.rigr-status-review {
-    background: #FF9800;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-approved {
-    background: #4CAF50;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-implemented {
-    background: #2196F3;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-verified {
-    background: #9C27B0;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-deprecated {
-    background: #9E9E9E;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-rejected {
-    background: #F44336;
-    color: #fff;
+.rigr-link-ref:hover {
+    text-decoration: underline;
 }
 
 /* -----------------------------------------------------------------------------
-   Body Content - per 00300
+   Body Content - adjusted for side-by-side layout
    ----------------------------------------------------------------------------- */
-.rigr-body {
-    padding: 1em;
-    background: var(--rigr-bg-content);
-    color: var(--rigr-text-primary);
-}
 
 .rigr-body > *:first-child {
     margin-top: 0;

@@ -565,10 +565,9 @@ def add_incoming_links_to_doctree(app: Sphinx, doctree: nodes.document, docname:
             # Find the tbody
             for tgroup in table.traverse(nodes.tgroup):
                 for tbody in tgroup.traverse(nodes.tbody):
-                    # Add incoming link rows
+                    # Add incoming link rows with clickable references (per issue #9)
                     for link_type, source_ids in incoming_links[item_id].items():
                         label = get_incoming_label(config, link_type)
-                        value = ', '.join(source_ids)
 
                         # Create new row
                         row = nodes.row()
@@ -578,11 +577,17 @@ def add_incoming_links_to_doctree(app: Sphinx, doctree: nodes.document, docname:
                         entry1 += nodes.paragraph(text=label)
                         row += entry1
 
-                        # Field value cell
+                        # Field value cell with clickable links
                         entry2 = nodes.entry()
                         entry2['classes'] = [f'rigr-field-{label.lower().replace(" ", "-")}']
                         value_para = nodes.paragraph()
-                        value_para += nodes.inline(text=value)
+                        for i, linked_id in enumerate(source_ids):
+                            if i > 0:
+                                value_para += nodes.inline(text=', ')
+                            ref = nodes.reference('', linked_id, internal=True)
+                            ref['refuri'] = f'#req-{linked_id}'
+                            ref['classes'] = ['rigr-link-ref']
+                            value_para += ref
                         entry2 += value_para
                         row += entry2
 
@@ -656,15 +661,34 @@ class ItemDirective(SphinxDirective):
         if item_id:
             container['ids'] = [f'req-{item_id}']
 
-        # === Title as header (per 00300) ===
-        title_node = nodes.rubric(text=title)
+        # === Title with ID on the left (per issue #9) ===
+        title_node = nodes.rubric()
         title_node['classes'] = ['rigr-title']
+        if item_id:
+            id_span = nodes.inline(text=item_id)
+            id_span['classes'] = ['rigr-title-id']
+            title_node += id_span
+            title_node += nodes.inline(text=' ')
+        title_node += nodes.inline(text=title)
         container += title_node
 
-        # === Metadata table (per 00300) ===
-        # Table contains: ID, Type, Level, Status, relationships
+        # === Content wrapper: body on left, metadata on right ===
+        content_wrapper = nodes.container()
+        content_wrapper['classes'] = ['rigr-content-wrapper']
+
+        # === Description / body content (on the left) ===
+        body = nodes.container()
+        body['classes'] = ['rigr-body']
+        if self.content:
+            self.state.nested_parse(self.content, self.content_offset, body)
+        content_wrapper += body
+
+        # === Metadata table (on the right, compact) ===
         metadata_rows = self._build_metadata_rows(config, item_id, type_title, level, status)
         if metadata_rows:
+            metadata_wrapper = nodes.container()
+            metadata_wrapper['classes'] = ['rigr-metadata-wrapper']
+
             table = nodes.table()
             table['classes'] = ['rigr-metadata-table']
 
@@ -672,14 +696,14 @@ class ItemDirective(SphinxDirective):
             table += tgroup
 
             # Column specs
-            tgroup += nodes.colspec(colwidth=30)
-            tgroup += nodes.colspec(colwidth=70)
+            tgroup += nodes.colspec(colwidth=40)
+            tgroup += nodes.colspec(colwidth=60)
 
             # Table body
             tbody = nodes.tbody()
             tgroup += tbody
 
-            for field_name, field_value, field_class in metadata_rows:
+            for field_name, field_value, field_class, is_link in metadata_rows:
                 row = nodes.row()
                 tbody += row
 
@@ -693,8 +717,17 @@ class ItemDirective(SphinxDirective):
                 entry2['classes'] = [f'rigr-field-{field_name.lower().replace(" ", "-")}']
                 value_para = nodes.paragraph()
 
-                # Apply special styling based on field class
-                if field_class:
+                # If this is a link field, create clickable references
+                if is_link and field_value:
+                    ids = [id.strip() for id in field_value.split(',')]
+                    for i, linked_id in enumerate(ids):
+                        if i > 0:
+                            value_para += nodes.inline(text=', ')
+                        ref = nodes.reference('', linked_id, internal=True)
+                        ref['refuri'] = f'#req-{linked_id}'
+                        ref['classes'] = ['rigr-link-ref']
+                        value_para += ref
+                elif field_class:
                     value_span = nodes.inline(text=field_value)
                     value_span['classes'] = field_class if isinstance(field_class, list) else [field_class]
                     value_para += value_span
@@ -703,14 +736,10 @@ class ItemDirective(SphinxDirective):
                 entry2 += value_para
                 row += entry2
 
-            container += table
+            metadata_wrapper += table
+            content_wrapper += metadata_wrapper
 
-        # === Description / body content (per 00300) ===
-        if self.content:
-            body = nodes.container()
-            body['classes'] = ['rigr-body']
-            self.state.nested_parse(self.content, self.content_offset, body)
-            container += body
+        container += content_wrapper
 
         return [container]
 
@@ -731,30 +760,27 @@ class ItemDirective(SphinxDirective):
         return '#9E9E9E'
 
     def _build_metadata_rows(self, config: Any, item_id: str, type_title: str, level: str, status: str) -> List[tuple]:
-        """Build list of (field_name, field_value, field_class) tuples for metadata table."""
+        """Build list of (field_name, field_value, field_class, is_link) tuples for metadata table."""
         rows = []
 
-        # Core metadata (per 00300): ID, Type, Level, Status
-        if item_id:
-            rows.append(('ID', item_id, 'rigr-id'))
-
-        rows.append(('Type', type_title, 'rigr-type-label'))
+        # Core metadata: Type, Level, Status (ID is now in title per issue #9)
+        rows.append(('Type', type_title, None, False))
 
         if level:
             level_title = self._get_level_title(config, level)
-            rows.append(('Level', level_title, None))
+            rows.append(('Level', level_title, None, False))
 
-        rows.append(('Status', status, ['rigr-status-badge', f'rigr-status-{status}']))
+        rows.append(('Status', status.title(), None, False))
 
         # Value field for parameters (per 00313)
         if 'value' in self.options and self.options['value']:
-            rows.append(('Value', self.options['value'], 'rigr-value'))
+            rows.append(('Value', self.options['value'], 'rigr-value', False))
 
         # Term field for terminology (per 00318)
         if 'term' in self.options and self.options['term']:
-            rows.append(('Term', self.options['term'], 'rigr-term'))
+            rows.append(('Term', self.options['term'], 'rigr-term', False))
 
-        # Link fields - all incoming and outgoing relationships
+        # Link fields - all incoming and outgoing relationships (clickable per issue #9)
         link_types = getattr(config, 'rigr_link_types', [])
         link_options = [lt.get('option') for lt in link_types if lt.get('option')]
 
@@ -766,14 +792,14 @@ class ItemDirective(SphinxDirective):
                     if lt.get('option') == opt:
                         label = lt.get('outgoing', opt).replace('_', ' ').title()
                         break
-                rows.append((label, self.options[opt], None))
+                rows.append((label, self.options[opt], None, True))
 
         # Extra options (free text)
         extra_options = getattr(config, 'rigr_extra_options', [])
         for opt in extra_options:
             if opt in self.options and self.options[opt]:
                 label = opt.replace('_', ' ').title()
-                rows.append((label, self.options[opt], None))
+                rows.append((label, self.options[opt], None, False))
 
         # Custom fields (enumerated values)
         custom_fields = getattr(config, 'rigr_custom_fields', {})
@@ -787,7 +813,7 @@ class ItemDirective(SphinxDirective):
                         display_value = fv.get('title', value)
                         break
                 label = field_name.replace('_', ' ').title()
-                rows.append((label, display_value, None))
+                rows.append((label, display_value, None, False))
 
         return rows
 
@@ -889,7 +915,7 @@ class GraphicDirective(SphinxDirective):
             tbody = nodes.tbody()
             tgroup += tbody
 
-            for field_name, field_value, field_class in metadata_rows:
+            for field_name, field_value, field_class, is_link in metadata_rows:
                 row = nodes.row()
                 tbody += row
 
@@ -903,7 +929,17 @@ class GraphicDirective(SphinxDirective):
                 entry2['classes'] = [f'rigr-field-{field_name.lower().replace(" ", "-")}']
                 value_para = nodes.paragraph()
 
-                if field_class:
+                # If this is a link field, create clickable references
+                if is_link and field_value:
+                    ids = [id.strip() for id in field_value.split(',')]
+                    for i, linked_id in enumerate(ids):
+                        if i > 0:
+                            value_para += nodes.inline(text=', ')
+                        ref = nodes.reference('', linked_id, internal=True)
+                        ref['refuri'] = f'#req-{linked_id}'
+                        ref['classes'] = ['rigr-link-ref']
+                        value_para += ref
+                elif field_class:
                     value_span = nodes.inline(text=field_value)
                     value_span['classes'] = field_class if isinstance(field_class, list) else [field_class]
                     value_para += value_span
@@ -963,14 +999,14 @@ class GraphicDirective(SphinxDirective):
         return [container]
 
     def _build_metadata_rows(self, config: Any, graphic_id: str) -> List[tuple]:
-        """Build list of (field_name, field_value, field_class) tuples for metadata table."""
+        """Build list of (field_name, field_value, field_class, is_link) tuples for metadata table."""
         rows = []
 
         # ID (per 00305)
         if graphic_id:
-            rows.append(('ID', graphic_id, 'rigr-id'))
+            rows.append(('ID', graphic_id, 'rigr-id', False))
 
-        # Link fields - all incoming and outgoing relationships
+        # Link fields - all incoming and outgoing relationships (clickable per issue #9)
         link_types = getattr(config, 'rigr_link_types', [])
         link_options = [lt.get('option') for lt in link_types if lt.get('option')]
 
@@ -982,7 +1018,7 @@ class GraphicDirective(SphinxDirective):
                     if lt.get('option') == opt:
                         label = lt.get('outgoing', opt).replace('_', ' ').title()
                         break
-                rows.append((label, self.options[opt], None))
+                rows.append((label, self.options[opt], None, True))
 
         return rows
 
@@ -1068,7 +1104,7 @@ class CodeDirective(SphinxDirective):
             tbody = nodes.tbody()
             tgroup += tbody
 
-            for field_name, field_value, field_class in metadata_rows:
+            for field_name, field_value, field_class, is_link in metadata_rows:
                 row = nodes.row()
                 tbody += row
 
@@ -1080,7 +1116,17 @@ class CodeDirective(SphinxDirective):
                 entry2['classes'] = [f'rigr-field-{field_name.lower().replace(" ", "-")}']
                 value_para = nodes.paragraph()
 
-                if field_class:
+                # If this is a link field, create clickable references
+                if is_link and field_value:
+                    ids = [id.strip() for id in field_value.split(',')]
+                    for i, linked_id in enumerate(ids):
+                        if i > 0:
+                            value_para += nodes.inline(text=', ')
+                        ref = nodes.reference('', linked_id, internal=True)
+                        ref['refuri'] = f'#req-{linked_id}'
+                        ref['classes'] = ['rigr-link-ref']
+                        value_para += ref
+                elif field_class:
                     value_span = nodes.inline(text=field_value)
                     value_span['classes'] = field_class if isinstance(field_class, list) else [field_class]
                     value_para += value_span
@@ -1116,16 +1162,16 @@ class CodeDirective(SphinxDirective):
         return [container]
 
     def _build_metadata_rows(self, config: Any, code_id: str, language: str) -> List[tuple]:
-        """Build list of (field_name, field_value, field_class) tuples for metadata table."""
+        """Build list of (field_name, field_value, field_class, is_link) tuples for metadata table."""
         rows = []
 
         if code_id:
-            rows.append(('ID', code_id, 'rigr-id'))
+            rows.append(('ID', code_id, 'rigr-id', False))
 
         if language and language != 'text':
-            rows.append(('Language', language, 'rigr-language'))
+            rows.append(('Language', language, 'rigr-language', False))
 
-        # Link fields
+        # Link fields (clickable per issue #9)
         link_types = getattr(config, 'rigr_link_types', [])
         link_options = [lt.get('option') for lt in link_types if lt.get('option')]
 
@@ -1136,7 +1182,7 @@ class CodeDirective(SphinxDirective):
                     if lt.get('option') == opt:
                         label = lt.get('outgoing', opt).replace('_', ' ').title()
                         break
-                rows.append((label, self.options[opt], None))
+                rows.append((label, self.options[opt], None, True))
 
         return rows
 
@@ -1249,12 +1295,24 @@ export const RIGR_CSS_TEMPLATE = `/* ===========================================
 .rigr-graphic .rigr-title,
 .rigr-code .rigr-title {
     margin: 0;
-    padding: 0.75em 1em;
+    padding: 0.5em 0.75em;
     background: var(--rigr-bg-header);
     border-bottom: 1px solid var(--rigr-border-color);
     font-size: 1.1em;
     font-weight: 600;
     color: var(--rigr-text-primary);
+}
+
+/* ID displayed in title (per issue #9) */
+.rigr-title-id {
+    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Consolas', monospace;
+    font-weight: 600;
+    color: var(--rigr-id-color);
+    background: var(--rigr-id-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.9em;
+    margin-right: 0.3em;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1279,29 +1337,54 @@ export const RIGR_CSS_TEMPLATE = `/* ===========================================
 }
 
 /* -----------------------------------------------------------------------------
-   Metadata Table - per 00300, 00305
-   Contains: ID, Type, Level, Status, relationships
+   Content Wrapper - body on left, metadata on right (per issue #9)
+   ----------------------------------------------------------------------------- */
+.rigr-content-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.rigr-body {
+    flex: 1 1 70%;
+    min-width: 300px;
+    padding: 0.75em;
+    background: var(--rigr-bg-content);
+    color: var(--rigr-text-primary);
+}
+
+.rigr-metadata-wrapper {
+    flex: 0 0 auto;
+    width: 25%;
+    min-width: 180px;
+    max-width: 280px;
+    background: var(--rigr-bg-light);
+    border-left: 1px solid var(--rigr-border-color);
+}
+
+/* -----------------------------------------------------------------------------
+   Metadata Table - compact styling (per issue #9)
    ----------------------------------------------------------------------------- */
 .rigr-metadata-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9em;
+    font-size: 0.8em;
     margin: 0;
     background: transparent;
 }
 
 .rigr-metadata-table td {
-    padding: 0.4em 1em;
+    padding: 0.25em 0.5em;
     border-bottom: 1px solid var(--rigr-border-color);
     vertical-align: top;
     color: var(--rigr-text-primary);
 }
 
 .rigr-metadata-table td:first-child {
-    width: 30%;
+    width: 40%;
     font-weight: 500;
     color: var(--rigr-text-secondary);
-    background: var(--rigr-bg-header);
+    white-space: nowrap;
 }
 
 .rigr-metadata-table td:last-child {
@@ -1312,63 +1395,19 @@ export const RIGR_CSS_TEMPLATE = `/* ===========================================
     border-bottom: none;
 }
 
-/* -----------------------------------------------------------------------------
-   Status Badges
-   Colors match conf.py rigr_statuses configuration
-   ----------------------------------------------------------------------------- */
-.rigr-status-badge {
-    display: inline-block;
-    padding: 0.2em 0.6em;
-    border-radius: 3px;
-    font-size: 0.85em;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+/* Clickable link references (per issue #9) */
+.rigr-link-ref {
+    color: var(--rigr-id-color);
+    text-decoration: none;
 }
 
-.rigr-status-badge.rigr-status-draft {
-    background: #FFEB3B;
-    color: #5d4037;
-}
-
-.rigr-status-badge.rigr-status-review {
-    background: #FF9800;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-approved {
-    background: #4CAF50;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-implemented {
-    background: #2196F3;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-verified {
-    background: #9C27B0;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-deprecated {
-    background: #9E9E9E;
-    color: #fff;
-}
-
-.rigr-status-badge.rigr-status-rejected {
-    background: #F44336;
-    color: #fff;
+.rigr-link-ref:hover {
+    text-decoration: underline;
 }
 
 /* -----------------------------------------------------------------------------
-   Body Content - per 00300
+   Body Content - adjusted for side-by-side layout
    ----------------------------------------------------------------------------- */
-.rigr-body {
-    padding: 1em;
-    background: var(--rigr-bg-content);
-    color: var(--rigr-text-primary);
-}
 
 .rigr-body > *:first-child {
     margin-top: 0;
