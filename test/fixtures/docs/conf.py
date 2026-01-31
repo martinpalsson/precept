@@ -10,10 +10,10 @@ rigr_object_types = [
 ]
 
 rigr_levels = [
-    {"level": "stakeholder", "title": "Stakeholder Requirements"},
-    {"level": "system", "title": "System Requirements"},
-    {"level": "component", "title": "Component Requirements"},
-    {"level": "software", "title": "Software Requirements"},
+    {"level": "stakeholder", "title": "Stakeholder"},
+    {"level": "system", "title": "System"},
+    {"level": "component", "title": "Component"},
+    {"level": "software", "title": "Software"},
 ]
 
 rigr_id_config = {

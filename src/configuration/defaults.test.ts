@@ -109,7 +109,7 @@ describe('Configuration Defaults', () => {
 
       expect(info).toBeDefined();
       expect(info?.level).toBe('stakeholder');
-      expect(info?.title).toBe('Stakeholder Requirements');
+      expect(info?.title).toBe('Stakeholder');
     });
 
     it('should return undefined for non-existent level', () => {

@@ -44,11 +44,11 @@ export const DEFAULT_OBJECT_TYPES: ObjectType[] = [
 ];
 
 export const DEFAULT_LEVELS: Level[] = [
-  { level: 'stakeholder', title: 'Stakeholder Requirements' },
-  { level: 'system', title: 'System Requirements' },
-  { level: 'component', title: 'Component Requirements' },
-  { level: 'software', title: 'Software Requirements' },
-  { level: 'hardware', title: 'Hardware Requirements' },
+  { level: 'stakeholder', title: 'Stakeholder' },
+  { level: 'system', title: 'System' },
+  { level: 'component', title: 'Component' },
+  { level: 'software', title: 'Software' },
+  { level: 'hardware', title: 'Hardware' },
 ];
 
 export const DEFAULT_ID_CONFIG: IdConfig = {
