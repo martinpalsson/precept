@@ -1,5 +1,5 @@
 /**
- * Tree View Provider - Requirements Explorer sidebar
+ * Tree View Provider - Item Explorer sidebar
  */
 
 import * as vscode from 'vscode';

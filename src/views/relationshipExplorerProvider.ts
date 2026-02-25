@@ -1,5 +1,5 @@
 /**
- * Relationship Explorer Provider - Shows incoming/outgoing relationships for selected requirement
+ * Link Explorer Provider - Shows incoming/outgoing links for selected item
  *
  * Implements requirements:
  * - 00285: Quick relation view

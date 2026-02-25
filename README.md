@@ -42,8 +42,8 @@ to (in my case) claude code.
 - **Status Validation**: Enforce valid status values
 - **Quick Fixes** (`Ctrl+.`): One-click issue resolution
 
-### Requirements Explorer
-- **Tree View**: Browse all requirements in sidebar
+### Item Explorer
+- **Tree View**: Browse all items in sidebar
 - **Flexible Grouping**: By type, file, or status
 - **Search & Filter**: Quick requirement lookup
 - **Click Navigation**: Instant jumps
@@ -159,19 +159,19 @@ Autocomplete helps with linking:
 #### `Shift+F12` to find all references
 ![References popup](docs/images/find-all-references1.png)
 
-#### Requirements Explorer
-![Requirements Explorer](docs/images/req-explorer1.png)
+#### Item Explorer
+![Item Explorer](docs/images/req-explorer1.png)
 
-All items (not limited to requirements) show up in the Requirements Explorer.
-When an item in the requirements explorer is selected, the text editor is
-focused on that item, and the relationship explorer will focus on that item.
+All items (not limited to requirements) show up in the Item Explorer.
+When an item in the Item Explorer is selected, the text editor is
+focused on that item, and the Link Explorer will focus on that item.
 
-#### Relationship Explorer
-![Relationship Explorer](docs/images/rel-explorer1.png)
+#### Link Explorer
+![Link Explorer](docs/images/rel-explorer1.png)
 
-Shows the relations (incoming/outgoing) for the item in focus. The user can
-click on a related item in the relationship explorer to navigate the text
-to the item, and focus the requirements explorer on it.
+Shows the links (incoming/outgoing) for the item in focus. The user can
+click on a related item in the Link Explorer to navigate the text
+to the item, and focus the Item Explorer on it.
 
 ### 5. Validate
 #### Validation errors appear automatically
@@ -685,7 +685,7 @@ src/
 ├── configuration/            # Config loading (conf.py parsing)
 ├── indexing/                 # RST parsing & indexing
 ├── providers/                # VS Code language providers
-├── views/                    # Requirements Explorer
+├── views/                    # Item Explorer & Link Explorer
 ├── commands/                 # Command implementations
 └── utils/                    # Utility functions
 ```

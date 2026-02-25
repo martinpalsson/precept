@@ -58,7 +58,7 @@
       },
       {
         "command": "requirements.refreshRelationshipExplorer",
-        "title": "Rigr: Refresh Relationship Explorer"
+        "title": "Rigr: Refresh Link Explorer"
       },
       {
         "command": "requirements.showRelationships",
@@ -182,11 +182,11 @@
       "explorer": [
         {
           "id": "requirementsExplorer",
-          "name": "Requirements Explorer"
+          "name": "Item Explorer"
         },
         {
           "id": "relationshipExplorer",
-          "name": "Relationship Explorer"
+          "name": "Link Explorer"
         }
       ]
     },
@@ -197,7 +197,7 @@
       },
       {
         "view": "relationshipExplorer",
-        "contents": "Select a requirement in the Requirements Explorer to view its relationships."
+        "contents": "Select an item in the Item Explorer to view its links."
       }
     ],
     "menus": {

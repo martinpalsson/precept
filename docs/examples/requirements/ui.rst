@@ -198,7 +198,7 @@ Requirements Tree View
       +-- Orphaned (3)
           +-- 00099 - No links
 
-Relationship Explorer Panel
+Link Explorer Panel
 ===========================
 
 .. item:: Relationship explorer panel
@@ -208,7 +208,7 @@ Relationship Explorer Panel
    :status: draft
    :satisfies: 00285
 
-   The extension shall provide a relationship explorer panel in the VS Code sidebar
+   The extension shall provide a link explorer panel in the VS Code sidebar
    titled "RELATIONSHIP EXPLORER" showing all incoming and outgoing relationships
    for one selected item.
 
@@ -231,7 +231,7 @@ Relationship Explorer Panel
    :satisfies: 00285
 
    Explorer items shall display relationships for the currently selected
-   requirement in the Requirements Explorer.
+   requirement in the Item Explorer.
 
 .. item:: Relationship explorer navigation
    :id: 00289
@@ -240,7 +240,7 @@ Relationship Explorer Panel
    :status: draft
    :satisfies: 00285
 
-   When clicking the relationship explorer items, the extension shall navigate
+   When clicking the link explorer items, the extension shall navigate
    to the requirement's definition location in the editor, and make the Requirements
    Explorer select that item.
 
@@ -251,7 +251,7 @@ Relationship Explorer Panel
    :status: draft
    :satisfies: 00285
    
-   The relationship explorer panel shall prominently display the currently
+   The link explorer panel shall prominently display the currently
    selected requirement at the top of the panel, including its ID, title,
    level, and status.
 
@@ -319,7 +319,7 @@ Status Bar
 
    Clicking the status bar item shall show a quick pick menu:
 
-   - Show Requirements Explorer
+   - Show Item Explorer
    - Reload Configuration
    - Run Deep Validation
    - Generate Release Report
@@ -439,7 +439,7 @@ Commands Palette
    - Rigr: Generate Release Report
    - Rigr: Create Git Tag for Baseline
    - Rigr: New Project
-   - Rigr: Show Requirements Explorer
+   - Rigr: Show Item Explorer
    - Rigr: Show Output
 
 .. item:: Command descriptions
@@ -825,8 +825,8 @@ Code Blocks
 
    Code and Graphic objects shall be visible in:
 
-   - The Requirements Explorer tree view (grouped by type, level, or status)
-   - The Relationships Explorer (showing incoming/outgoing links)
+   - The Item Explorer tree view (grouped by type, level, or status)
+   - The Link Explorer (showing incoming/outgoing links)
 
    They shall be navigable (click to go to source) and display their
    ID, title, and relationships just like regular items.

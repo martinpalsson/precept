@@ -526,7 +526,7 @@ Views Layer
 
    **File**: ``src/views/treeViewProvider.ts``
 
-   Provides the Requirements Explorer tree view:
+   Provides the Item Explorer tree view:
 
    - Implements VS Code TreeDataProvider
    - Supports grouping by type, level, file, status
@@ -546,14 +546,14 @@ Views Layer
 
    **File**: ``src/views/relationshipExplorerProvider.ts``
 
-   Provides the Relationship Explorer tree view:
+   Provides the Link Explorer tree view:
 
    - Shows incoming and outgoing relationships for selected requirement
    - Groups relationships by direction (Incoming/Outgoing)
    - Sub-groups by link type (satisfies, implements, etc.)
    - Displays relationship items with direction icons
    - Click to navigate to related requirement
-   - Updates automatically when selection changes in Requirements Explorer
+   - Updates automatically when selection changes in Item Explorer
    - Bidirectional navigation between explorers
 
 Commands Layer

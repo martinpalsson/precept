@@ -29,7 +29,7 @@ src/
 ├── configuration/            # Config loading from Sphinx conf.py + defaults
 ├── indexing/                 # RST parsing and in-memory index
 ├── providers/                # VS Code language providers (completion, hover, definition, etc.)
-├── views/                    # UI (Requirements Explorer tree view)
+├── views/                    # UI (Item Explorer & Link Explorer tree views)
 ├── commands/                 # Command implementations (validation, baseline, reports)
 └── utils/                    # ID generation, graph analysis
 ```
