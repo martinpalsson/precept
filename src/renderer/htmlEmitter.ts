@@ -235,18 +235,52 @@ function renderInlineNode(node: InlineNode, ctx: RenderContext): string {
   }
 }
 
+/**
+ * Resolve an item ID to an href, handling cross-file links.
+ * If the item lives in a different file than currentSlug, produces "otherfile.html#anchor".
+ * Otherwise produces just "#anchor".
+ */
+function resolveItemHref(id: string, anchor: string, ctx: RenderContext): string {
+  if (!ctx.currentSlug || !ctx.index || !ctx.basePath) {
+    return `#${anchor}`;
+  }
+
+  const obj = ctx.index.objects.get(id);
+  if (!obj) return `#${anchor}`;
+
+  // Determine slug of the file containing this item
+  const itemFile = obj.location.file;
+  const basePath = ctx.basePath.endsWith('/') ? ctx.basePath : ctx.basePath + '/';
+  let itemSlug = itemFile;
+  if (itemFile.startsWith(basePath)) {
+    itemSlug = itemFile.slice(basePath.length);
+  }
+  // Strip .rst extension
+  itemSlug = itemSlug.replace(/\.rst$/, '');
+
+  if (itemSlug === ctx.currentSlug) {
+    return `#${anchor}`;
+  }
+
+  // Compute relative path from currentSlug to itemSlug
+  const currentDepth = ctx.currentSlug.split('/').length - 1;
+  const prefix = currentDepth > 0 ? '../'.repeat(currentDepth) : '';
+  return `${prefix}${itemSlug}.html#${anchor}`;
+}
+
 function renderRole(node: InlineNode & { type: 'role' }, ctx: RenderContext): string {
   switch (node.name) {
     case 'item': {
-      const href = `#req-${escapeAttr(node.target)}`;
-      return `<a href="${href}" class="rigr-link-ref">${escapeHtml(node.target)}</a>`;
+      const href = resolveItemHref(node.target, `req-${node.target}`, ctx);
+      return `<a href="${escapeAttr(href)}" class="rigr-link-ref">${escapeHtml(node.target)}</a>`;
     }
     case 'paramval': {
       // Resolve parameter value from index
       const obj = ctx.index?.objects.get(node.target);
       const value = obj?.metadata.value;
       if (value) {
-        return `<a href="#req-${escapeAttr(node.target)}" class="paramval-ref">${escapeHtml(value)}</a>`;
+        const href = resolveItemHref(node.target, `req-${node.target}`, ctx);
+        return `<a href="${escapeAttr(href)}" class="paramval-ref">${escapeHtml(value)}</a>`;
       }
       return `<span class="paramval-missing">[unknown: ${escapeHtml(node.target)}]</span>`;
     }
@@ -255,7 +289,8 @@ function renderRole(node: InlineNode & { type: 'role' }, ctx: RenderContext): st
       const obj = ctx.index?.objects.get(node.target);
       const term = obj?.metadata.term;
       if (term) {
-        return `<a href="#req-${escapeAttr(node.target)}" class="termref">${escapeHtml(term)}</a>`;
+        const href = resolveItemHref(node.target, `req-${node.target}`, ctx);
+        return `<a href="${escapeAttr(href)}" class="termref">${escapeHtml(term)}</a>`;
       }
       return `<span class="termref-missing">[unknown: ${escapeHtml(node.target)}]</span>`;
     }

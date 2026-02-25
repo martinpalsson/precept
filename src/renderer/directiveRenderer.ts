@@ -28,6 +28,8 @@ export interface RenderContext {
   basePath?: string;
   /** PlantUML server URL for diagram rendering (defaults to public server) */
   plantumlServer?: string;
+  /** Current file path (relative slug, e.g. "stakeholder") for cross-file link resolution */
+  currentSlug?: string;
 }
 
 // ---------------------------------------------------------------------------

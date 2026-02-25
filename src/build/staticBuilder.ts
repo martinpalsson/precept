@@ -105,6 +105,7 @@ export function buildStaticSite(options: BuildOptions): BuildResult {
         config,
         index,
         basePath: sourceDir,
+        currentSlug: slug,
       };
 
       const bodyHtml = renderDocument(doc, ctx);
