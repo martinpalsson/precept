@@ -554,6 +554,38 @@ export function registerTreeView(
     })
   );
 
+  // Track editor cursor to sync explorers with the item under the cursor
+  let cursorSyncTimeout: ReturnType<typeof setTimeout> | undefined;
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      if (event.textEditor.document.languageId !== 'restructuredtext') return;
+      // Debounce to avoid thrashing on rapid cursor movement
+      if (cursorSyncTimeout) clearTimeout(cursorSyncTimeout);
+      cursorSyncTimeout = setTimeout(() => {
+        const line = event.selections[0].active.line + 1; // 1-based
+        const filePath = event.textEditor.document.uri.fsPath;
+        const items = indexBuilder.getRequirementsByFile(filePath);
+        // Find the item whose range contains the cursor line
+        const match = items.find(r =>
+          r.location.line <= line && (r.location.endLine ?? r.location.line) >= line
+        );
+        if (match) {
+          const treeItem = new RequirementTreeItem(
+            `${match.id} - ${match.title}`,
+            vscode.TreeItemCollapsibleState.None,
+            match
+          );
+          try {
+            treeView.reveal(treeItem, { select: true, focus: false });
+          } catch {
+            // Item might not be visible in current grouping
+          }
+          vscode.commands.executeCommand('requirements.showRelationships', match.id);
+        }
+      }, 150);
+    })
+  );
+
   // Register refresh command
   context.subscriptions.push(
     vscode.commands.registerCommand('requirements.refreshTreeView', () => {
