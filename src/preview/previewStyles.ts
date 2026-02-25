@@ -384,26 +384,26 @@ img {
    Status Theming
    --------------------------------------------------------------------------- */
 
-/* Status indicator: coloured top border on all item/graphic/code containers */
-.rigr-status-draft { border-top: 3px solid #FFEB3B; }
-.rigr-status-review { border-top: 3px solid #FF9800; }
-.rigr-status-approved { border-top: 3px solid #4CAF50; }
-.rigr-status-implemented { border-top: 3px solid #2196F3; }
-.rigr-status-verified { border-top: 3px solid #9C27B0; }
-.rigr-status-deprecated { border-top: 3px solid #9E9E9E; }
-.rigr-status-rejected { border-top: 3px solid #F44336; }
+/* Status indicator: subtle coloured top border */
+.rigr-status-draft { border-top: 2px solid #CFB53B; }
+.rigr-status-review { border-top: 2px solid #E08A00; }
+.rigr-status-approved { border-top: 2px solid #388E3C; }
+.rigr-status-implemented { border-top: 2px solid #1976D2; }
+.rigr-status-verified { border-top: 2px solid #7B1FA2; }
+.rigr-status-deprecated { border-top: 2px solid #9E9E9E; }
+.rigr-status-rejected { border-top: 2px solid #C62828; }
 
 /* Status value in the metadata table */
 .rigr-field-status {
   font-weight: 600;
 }
 
-.rigr-status-draft .rigr-field-status { color: #F9A825; }
-.rigr-status-review .rigr-field-status { color: #EF6C00; }
-.rigr-status-approved .rigr-field-status { color: #2E7D32; }
-.rigr-status-implemented .rigr-field-status { color: #1565C0; }
+.rigr-status-draft .rigr-field-status { color: #CFB53B; }
+.rigr-status-review .rigr-field-status { color: #E08A00; }
+.rigr-status-approved .rigr-field-status { color: #388E3C; }
+.rigr-status-implemented .rigr-field-status { color: #1976D2; }
 .rigr-status-verified .rigr-field-status { color: #7B1FA2; }
-.rigr-status-deprecated .rigr-field-status { color: #757575; }
+.rigr-status-deprecated .rigr-field-status { color: #9E9E9E; }
 .rigr-status-rejected .rigr-field-status { color: #C62828; }
 
 /* ---------------------------------------------------------------------------
