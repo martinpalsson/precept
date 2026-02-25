@@ -123,9 +123,14 @@ export async function buildDocumentation(workspaceRoot: string, indexBuilder?: I
   channel.appendLine(`Output: ${result.outputDir}`);
 
   if (result.filesBuilt > 0) {
-    vscode.window.showInformationMessage(
-      `Documentation built: ${result.filesBuilt} pages → ${path.relative(workspaceRoot, outputDir)}`
+    const indexFile = path.join(outputDir, 'index.html');
+    const action = await vscode.window.showInformationMessage(
+      `Documentation built: ${result.filesBuilt} pages → ${path.relative(workspaceRoot, outputDir)}`,
+      'Open in Browser'
     );
+    if (action === 'Open in Browser') {
+      vscode.env.openExternal(vscode.Uri.file(indexFile));
+    }
   } else {
     vscode.window.showWarningMessage('No documentation files were generated.');
   }
