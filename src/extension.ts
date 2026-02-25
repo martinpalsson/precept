@@ -214,7 +214,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   // Register documentation commands
-  const docCommands = registerDocumentationCommands(context);
+  const docCommands = registerDocumentationCommands(context, indexBuilder);
   docCommands.forEach(cmd => context.subscriptions.push(cmd));
 
   // Register RST preview (pass theme from initial config load)

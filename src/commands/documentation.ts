@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import { findRigrJsonPath, loadConfigFromJson } from '../configuration/configLoader';
 import { buildStaticSite } from '../build/staticBuilder';
 import { DEFAULT_CONFIG } from '../configuration/defaults';
+import { IndexBuilder } from '../indexing';
 
 /** Output channel for build logs */
 let outputChannel: vscode.OutputChannel | null = null;
@@ -28,7 +29,7 @@ function getOutputChannel(): vscode.OutputChannel {
 /**
  * Build documentation using the built-in renderer
  */
-export async function buildDocumentation(workspaceRoot: string): Promise<boolean> {
+export async function buildDocumentation(workspaceRoot: string, indexBuilder?: IndexBuilder): Promise<boolean> {
   const channel = getOutputChannel();
   channel.clear();
   channel.show();
@@ -101,6 +102,7 @@ export async function buildDocumentation(workspaceRoot: string): Promise<boolean
     entryPoint,
     outputDir,
     config,
+    index: indexBuilder?.getIndex(),
     projectName: 'Documentation',
     theme,
     onProgress: (current, total, fileName) => {
@@ -159,7 +161,7 @@ async function findDocumentationIndex(workspaceRoot: string): Promise<string | n
 /**
  * View documentation in browser
  */
-export async function viewDocumentation(workspaceRoot: string): Promise<boolean> {
+export async function viewDocumentation(workspaceRoot: string, indexBuilder?: IndexBuilder): Promise<boolean> {
   const indexPath = await findDocumentationIndex(workspaceRoot);
 
   if (!indexPath) {
@@ -170,9 +172,9 @@ export async function viewDocumentation(workspaceRoot: string): Promise<boolean>
     );
 
     if (result === 'Build Documentation') {
-      const buildSuccess = await buildDocumentation(workspaceRoot);
+      const buildSuccess = await buildDocumentation(workspaceRoot, indexBuilder);
       if (buildSuccess) {
-        return viewDocumentation(workspaceRoot);
+        return viewDocumentation(workspaceRoot, indexBuilder);
       }
     }
     return false;
@@ -188,7 +190,8 @@ export async function viewDocumentation(workspaceRoot: string): Promise<boolean>
  * Register documentation commands
  */
 export function registerDocumentationCommands(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  indexBuilder?: IndexBuilder
 ): vscode.Disposable[] {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
@@ -201,14 +204,14 @@ export function registerDocumentationCommands(
   // Register build command
   disposables.push(
     vscode.commands.registerCommand('requirements.buildDocumentation', async () => {
-      await buildDocumentation(workspaceRoot);
+      await buildDocumentation(workspaceRoot, indexBuilder);
     })
   );
 
   // Register view command
   disposables.push(
     vscode.commands.registerCommand('requirements.viewDocumentation', async () => {
-      await viewDocumentation(workspaceRoot);
+      await viewDocumentation(workspaceRoot, indexBuilder);
     })
   );
 
