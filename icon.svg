@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="64" fill="#1a2744"/>
+
+  <!-- Shield - filled, larger -->
+  <path d="M256 56 L420 132 L420 288 Q420 400 256 456 Q92 400 92 288 L92 132 Z"
+        fill="#0e1b33" stroke="#00b4d8" stroke-width="12" stroke-linejoin="round"/>
+
+  <!-- Inner shield highlight -->
+  <path d="M256 82 L396 148 L396 282 Q396 382 256 432 Q116 382 116 282 L116 148 Z"
+        fill="#132240"/>
+
+  <!-- Trace lines (requirements) — top section -->
+  <line x1="162" y1="168" x2="350" y2="168" stroke="#00b4d8" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+  <line x1="162" y1="196" x2="330" y2="196" stroke="#00b4d8" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="162" y1="224" x2="300" y2="224" stroke="#00b4d8" stroke-width="8" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Bold checkmark — bigger -->
+  <polyline points="165,305 228,378 355,228"
+            fill="none" stroke="#ffffff" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

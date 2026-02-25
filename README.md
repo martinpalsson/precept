@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" alt="Precept" width="128" height="128">
+</p>
+
 # Precept
 
 **A free and open source requirements engineering tool for VS Code.**
@@ -6,14 +10,7 @@ Precept is a lightweight requirements management system built into VS Code.
 Write requirements in RST files, get IntelliSense, validation, traceability,
 live preview, and static HTML documentation — no external tools needed.
 
-Precept is heavily vibe-coded but there is a requirement base for it in
-docs/examples/requirements which serves both as an example and instruction
-to (in my case) claude code.
-
-## Plan before release to VS Code Marketplace
-- [ ] Debug currently developed features thuroughly.
-- [ ] Work through docs/examples/requirements (too much slop right now).
-- [ ] Connect existing tests to requirements in docs/examples/requirements
+> **Early release disclaimer:** This is an initial release. Some features may be rough around the edges, and you may encounter bugs. Feedback and issue reports are very welcome at [github.com/martinpalsson/precept/issues](https://github.com/martinpalsson/precept/issues).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.80+-blue.svg)](https://code.visualstudio.com/)
@@ -69,14 +66,12 @@ to (in my case) claude code.
 ## Installation
 
 ### From VS Code Marketplace
-**Precept is pre-release and currently not released in VS Code Marketplace, for now, install from source**
 
 1. Open Extensions (`Ctrl+Shift+X`)
 2. Search for "Precept"
 3. Click **Install**
 
 ### From VSIX
-**Precept is pre-release and currently not released in VS Code Marketplace, for now, install from source**
 ```bash
 code --install-extension precept-0.1.0.vsix
 ```

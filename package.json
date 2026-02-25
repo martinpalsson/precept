@@ -4,7 +4,7 @@
   "description": "Lightweight requirements management for VS Code - IntelliSense, validation, traceability, and documentation for RST files",
   "version": "0.1.0",
   "icon": "icon.png",
-  "publisher": "precept",
+  "publisher": "PoleshiftAB",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -271,7 +271,9 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "jest"
+    "test:unit": "jest",
+    "package": "vsce package",
+    "publish": "vsce publish"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",
@@ -280,6 +282,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^8.0.0",
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
