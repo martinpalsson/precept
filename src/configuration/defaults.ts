@@ -84,6 +84,11 @@ export const DEFAULT_LINK_TYPES: LinkType[] = [
     incoming: 'tested_by',
     outgoing: 'tests',
   },
+  {
+    option: 'references',
+    incoming: 'referenced_by',
+    outgoing: 'references',
+  },
 ];
 
 export const DEFAULT_STATUSES: Status[] = [

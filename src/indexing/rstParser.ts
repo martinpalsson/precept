@@ -140,12 +140,20 @@ function buildRequirement(
     }
   }
 
+  // Scan body text for :termref: and :paramval: inline references
+  const bodyText = state.currentDescription.join('\n');
+  const inlineRefIds = extractInlineRefIds(bodyText);
+  if (inlineRefIds.length > 0) {
+    const existing = links['references'] || [];
+    links['references'] = [...new Set([...existing, ...inlineRefIds])];
+  }
+
   return {
     id,
     type,
     level: state.currentOptions.get('level'),
     title: state.currentTitle,
-    description: state.currentDescription.join('\n').trim(),
+    description: bodyText.trim(),
     status: state.currentOptions.get('status'),
     links,
     metadata,
@@ -156,6 +164,20 @@ function buildRequirement(
     },
     baseline: state.currentOptions.get('baseline'),
   };
+}
+
+/**
+ * Extract IDs from :termref:`ID`, :paramval:`ID`, and :item:`ID` inline roles in body text.
+ */
+function extractInlineRefIds(text: string): string[] {
+  const ids: string[] = [];
+  const pattern = /:(?:termref|paramval|item):`([^`]+)`/g;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const id = match[1].trim();
+    if (id) ids.push(id);
+  }
+  return ids;
 }
 
 /**
