@@ -10,7 +10,7 @@ import * as path from 'path';
 import { parseRstDocument } from '../renderer/rstFullParser';
 import { renderDocument } from '../renderer/htmlEmitter';
 import { RenderContext } from '../renderer/directiveRenderer';
-import { RigrConfig, RequirementIndex } from '../types';
+import { RigrConfig } from '../types';
 import { IndexBuilder } from '../indexing';
 import { PREVIEW_CSS } from './previewStyles';
 import { getTheme, generateThemeVars } from '../themes';
@@ -24,6 +24,7 @@ export class RstPreviewProvider implements vscode.Disposable {
   private indexBuilder: IndexBuilder;
   private disposables: vscode.Disposable[] = [];
   private updateTimeout: ReturnType<typeof setTimeout> | undefined;
+  private scrollTimeout: ReturnType<typeof setTimeout> | undefined;
   private currentUri: vscode.Uri | undefined;
   private themeName: string;
 
@@ -70,7 +71,7 @@ export class RstPreviewProvider implements vscode.Disposable {
       'RST Preview',
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       {
-        enableScripts: false,
+        enableScripts: true,
         localResourceRoots: [],
       },
     );
@@ -94,9 +95,21 @@ export class RstPreviewProvider implements vscode.Disposable {
     // Subscribe to active editor changes
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(editor => {
+        if (editor && editor.document.languageId !== 'restructuredtext') {
+          return;
+        }
         if (editor && editor.document.languageId === 'restructuredtext') {
           this.updatePreview(editor.document);
         }
+      }),
+    );
+
+    // Subscribe to cursor changes for scroll sync
+    this.disposables.push(
+      vscode.window.onDidChangeTextEditorSelection(event => {
+        if (event.textEditor.document.languageId !== 'restructuredtext') return;
+        if (event.textEditor.document.uri.toString() !== this.currentUri?.toString()) return;
+        this.scheduleScrollSync(event.textEditor);
       }),
     );
 
@@ -121,10 +134,51 @@ export class RstPreviewProvider implements vscode.Disposable {
       const editor = vscode.window.activeTextEditor;
       if (editor && editor.document.languageId === 'restructuredtext') {
         this.updatePreview(editor.document);
-      } else if (this.currentUri) {
-        // Active editor isn't RST, keep the last preview
       }
     }, 300);
+  }
+
+  /**
+   * Schedule a debounced scroll sync (100ms).
+   */
+  private scheduleScrollSync(editor: vscode.TextEditor): void {
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+    this.scrollTimeout = setTimeout(() => {
+      this.syncScroll(editor);
+    }, 100);
+  }
+
+  /**
+   * Find the nearest item/section at the cursor and tell the webview to scroll to it.
+   */
+  private syncScroll(editor: vscode.TextEditor): void {
+    if (!this.panel) return;
+
+    const line = editor.selection.active.line + 1; // 1-based
+    const filePath = editor.document.uri.fsPath;
+
+    // Try to find a requirement item at the cursor
+    const items = this.indexBuilder.getRequirementsByFile(filePath);
+    const match = items.find(r =>
+      r.location.line <= line && (r.location.endLine ?? r.location.line) >= line
+    );
+
+    if (match) {
+      // Determine the anchor prefix based on type
+      const type = match.type;
+      let prefix = 'req-';
+      if (type === 'graphic') prefix = 'fig-';
+      if (type === 'code') prefix = 'code-';
+      this.panel.webview.postMessage({ type: 'scrollTo', id: `${prefix}${match.id}` });
+      return;
+    }
+
+    // Fallback: estimate scroll position as a fraction of the document
+    const totalLines = editor.document.lineCount;
+    const fraction = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
+    this.panel.webview.postMessage({ type: 'scrollToFraction', fraction });
   }
 
   /**
@@ -168,10 +222,11 @@ export class RstPreviewProvider implements vscode.Disposable {
    * Wrap body HTML in a full HTML page with styles and CSP.
    */
   private wrapHtml(body: string): string {
-    // CSP: allow inline styles and images from PlantUML server + local resources
+    // CSP: allow inline styles, inline scripts, and images from PlantUML server
     const csp = [
       "default-src 'none'",
       "style-src 'unsafe-inline'",
+      "script-src 'unsafe-inline'",
       "img-src data: vscode-resource: https://www.plantuml.com https:",
     ].join('; ');
 
@@ -195,6 +250,25 @@ export class RstPreviewProvider implements vscode.Disposable {
 </head>
 <body>
 ${body}
+<script>
+(function() {
+  const vscode = acquireVsCodeApi();
+  window.addEventListener('message', function(event) {
+    const msg = event.data;
+    if (msg.type === 'scrollTo') {
+      const el = document.getElementById(msg.id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else if (msg.type === 'scrollToFraction') {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0) {
+        window.scrollTo({ top: maxScroll * msg.fraction, behavior: 'smooth' });
+      }
+    }
+  });
+})();
+</script>
 </body>
 </html>`;
   }
@@ -202,6 +276,9 @@ ${body}
   dispose(): void {
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
+    }
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
     }
     if (this.panel) {
       this.panel.dispose();
