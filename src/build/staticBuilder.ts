@@ -111,6 +111,10 @@ export function buildStaticSite(options: BuildOptions): BuildResult {
       const title = doc.title || slug;
       const nav = getNavLinks(tocTree, slug);
 
+      // Compute relative path prefix for nested slugs (e.g. "ip/usb/foo" → "../../")
+      const depth = slug.split('/').length - 1;
+      const pathPrefix = depth > 0 ? '../'.repeat(depth) : '';
+
       const pageCtx: PageTemplateContext = {
         title,
         bodyHtml,
@@ -119,12 +123,17 @@ export function buildStaticSite(options: BuildOptions): BuildResult {
         prevSlug: nav.prev,
         nextSlug: nav.next,
         projectName: projectName,
-        cssPath: '_static/rigr.css',
-        jsPath: '_static/rigr.js',
+        cssPath: `${pathPrefix}_static/rigr.css`,
+        jsPath: `${pathPrefix}_static/rigr.js`,
+        pathPrefix,
       };
 
       const pageHtml = renderPage(pageCtx);
       const outFile = path.join(outputDir, `${slug}.html`);
+      const outDir = path.dirname(outFile);
+      if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
+      }
       fs.writeFileSync(outFile, pageHtml, 'utf-8');
       filesBuilt++;
     } catch (err) {

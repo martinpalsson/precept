@@ -17,14 +17,17 @@ export interface PageTemplateContext {
   projectName: string;
   cssPath: string;
   jsPath: string;
+  /** Relative prefix to reach root from current page (e.g. "../../" for nested pages) */
+  pathPrefix?: string;
 }
 
 /**
  * Render a full HTML page from body content and navigation context.
  */
 export function renderPage(ctx: PageTemplateContext): string {
-  const sidebar = renderSidebar(ctx.tocEntries, ctx.currentSlug);
-  const navHtml = renderNavigation(ctx.prevSlug, ctx.nextSlug);
+  const prefix = ctx.pathPrefix || '';
+  const sidebar = renderSidebar(ctx.tocEntries, ctx.currentSlug, prefix);
+  const navHtml = renderNavigation(ctx.prevSlug, ctx.nextSlug, prefix);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -52,28 +55,28 @@ export function renderPage(ctx: PageTemplateContext): string {
 </html>`;
 }
 
-function renderSidebar(entries: TocEntry[], currentSlug: string): string {
+function renderSidebar(entries: TocEntry[], currentSlug: string, pathPrefix: string): string {
   const flat = flattenTocTree(entries);
   if (flat.length === 0) return '';
 
   const items = flat.map(item => {
     const active = item.slug === currentSlug ? ' class="active"' : '';
     const indent = `padding-left: ${0.75 + item.depth * 1}em`;
-    return `<li${active}><a href="${escapeAttr(item.slug)}.html" style="${indent}">${escapeHtml(item.title)}</a></li>`;
+    return `<li${active}><a href="${escapeAttr(pathPrefix + item.slug)}.html" style="${indent}">${escapeHtml(item.title)}</a></li>`;
   });
 
   return `<ul class="rigr-nav">\n${items.join('\n')}\n</ul>`;
 }
 
-function renderNavigation(prevSlug: string | null, nextSlug: string | null): string {
+function renderNavigation(prevSlug: string | null, nextSlug: string | null, pathPrefix: string): string {
   if (!prevSlug && !nextSlug) return '';
 
   const parts: string[] = ['<nav class="rigr-page-nav">'];
   if (prevSlug) {
-    parts.push(`<a class="rigr-nav-prev" href="${escapeAttr(prevSlug)}.html">&laquo; Previous</a>`);
+    parts.push(`<a class="rigr-nav-prev" href="${escapeAttr(pathPrefix + prevSlug)}.html">&laquo; Previous</a>`);
   }
   if (nextSlug) {
-    parts.push(`<a class="rigr-nav-next" href="${escapeAttr(nextSlug)}.html">Next &raquo;</a>`);
+    parts.push(`<a class="rigr-nav-next" href="${escapeAttr(pathPrefix + nextSlug)}.html">Next &raquo;</a>`);
   }
   parts.push('</nav>');
   return parts.join('\n');
