@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import {
   ConfigurationManager,
   loadConfiguration,
+  handleBrokenConfig,
   onSettingsChange,
   updateSetting,
 } from './configuration';
@@ -63,8 +64,18 @@ let previewProvider: RstPreviewProvider;
 function updateStatusBar(config: PreceptConfig, source: string, count: number): void {
   const typeCount = config.objectTypes.length;
   const levelCount = config.levels.length;
-  statusBarItem.text = `$(checklist) Requirements: ${count} objects`;
-  statusBarItem.tooltip = `Requirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nSource: ${source}`;
+
+  if (configManager && configManager.isUsingFallbackDefaults()) {
+    statusBarItem.text = `$(warning) Precept: ${count} objects (defaults)`;
+    statusBarItem.tooltip = `Precept — Using default configuration (precept.json is broken)\nRequirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nClick to retry loading configuration`;
+    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    statusBarItem.command = 'requirements.reloadConfiguration';
+  } else {
+    statusBarItem.text = `$(checklist) Precept: ${count} objects`;
+    statusBarItem.tooltip = `Precept — Requirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nSource: ${source}`;
+    statusBarItem.backgroundColor = undefined;
+    statusBarItem.command = undefined;
+  }
   statusBarItem.show();
 }
 
@@ -72,8 +83,8 @@ function updateStatusBar(config: PreceptConfig, source: string, count: number): 
  * Show config error in status bar
  */
 function showConfigError(error: string): void {
-  statusBarItem.text = '$(error) Requirements: Config Error';
-  statusBarItem.tooltip = `Configuration error: ${error}\nClick to reload`;
+  statusBarItem.text = '$(error) Precept: Config Error';
+  statusBarItem.tooltip = `Precept — Configuration error: ${error}\nClick to reload`;
   statusBarItem.command = 'requirements.reloadConfiguration';
   statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
   statusBarItem.show();
@@ -135,17 +146,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.StatusBarAlignment.Left,
     100
   );
-  statusBarItem.text = '$(sync~spin) Requirements: Loading...';
+  statusBarItem.text = '$(sync~spin) Precept: Loading...';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
   // Load configuration
   let config: PreceptConfig = DEFAULT_CONFIG;
+  let activationFallback = false;
   try {
     const result = await loadConfiguration(workspaceRoot);
     if (result.success && result.config) {
       config = result.config;
       console.log(`Loaded config from ${result.source}`);
+    } else if (result.failedConfigPath) {
+      // precept.json exists but is broken — warn the user
+      showConfigError(result.error || 'Unknown error');
+      const choice = await handleBrokenConfig(
+        result.error || 'Unknown parse error',
+        result.failedConfigPath
+      );
+      if (choice === 'defaults') {
+        config = DEFAULT_CONFIG;
+        activationFallback = true;
+      }
+      // 'edit' / 'cancel': keep DEFAULT_CONFIG, file watcher will re-trigger
     } else {
       console.warn(`Failed to load config: ${result.error}`);
       showConfigError(result.error || 'Unknown error');
@@ -158,6 +182,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Create configuration manager
   configManager = ConfigurationManager.getInstance();
   await configManager.initialize(workspaceRoot);
+  if (activationFallback) {
+    configManager.setFallbackDefaults(true);
+  }
   context.subscriptions.push(configManager);
 
   // Create index builder
@@ -231,7 +258,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register reload configuration command
   context.subscriptions.push(
     vscode.commands.registerCommand('requirements.reloadConfiguration', async () => {
-      statusBarItem.text = '$(sync~spin) Requirements: Reloading...';
+      statusBarItem.text = '$(sync~spin) Precept: Reloading...';
 
       try {
         const result = await loadConfiguration(workspaceRoot);
@@ -255,6 +282,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           vscode.window.showInformationMessage(
             `Requirements configuration reloaded from ${result.source}`
           );
+        } else if (result.failedConfigPath) {
+          showConfigError(result.error || 'Unknown error');
+          const choice = await handleBrokenConfig(
+            result.error || 'Unknown parse error',
+            result.failedConfigPath
+          );
+          if (choice === 'defaults') {
+            config = DEFAULT_CONFIG;
+            updateProvidersConfig(config);
+            cacheManager.updateConfig(config);
+            updateStatusBar(config, 'defaults', indexBuilder.getCount());
+          }
         } else {
           showConfigError(result.error || 'Unknown error');
         }
@@ -311,6 +350,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         previewProvider.updateTheme(configManager.getThemeName());
       }
       updateStatusBar(config, configManager.getConfigSource(), indexBuilder.getCount());
+    })
+  );
+
+  // Listen for config errors (e.g. broken precept.json detected by file watcher)
+  context.subscriptions.push(
+    configManager.onConfigError((error) => {
+      showConfigError(error);
     })
   );
 

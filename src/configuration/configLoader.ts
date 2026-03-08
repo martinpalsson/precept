@@ -221,16 +221,49 @@ export async function loadConfiguration(workspaceRoot: string): Promise<ConfigLo
     if (jsonResult.success) {
       return jsonResult; // includes theme if present
     }
-    // Log error but continue to defaults
-    console.warn(`Failed to load precept.json: ${jsonResult.error}`);
+    // precept.json exists but failed to parse — report the failure
+    return {
+      success: false,
+      error: jsonResult.error,
+      source: 'precept.json',
+      failedConfigPath: jsonPath,
+    };
   }
 
-  // Fall back to defaults
+  // No precept.json found — defaults are expected
   return {
     success: true,
     config: DEFAULT_CONFIG,
     source: 'defaults',
   };
+}
+
+/**
+ * Show a warning dialog when precept.json exists but failed to parse.
+ * Returns the user's choice.
+ */
+export async function handleBrokenConfig(
+  error: string,
+  failedConfigPath: string
+): Promise<'edit' | 'defaults' | 'cancel'> {
+  const editFile = 'Edit File';
+  const useDefaults = 'Use Defaults';
+
+  const choice = await vscode.window.showWarningMessage(
+    `Failed to parse precept.json: ${error}`,
+    editFile,
+    useDefaults
+  );
+
+  if (choice === editFile) {
+    const doc = await vscode.workspace.openTextDocument(failedConfigPath);
+    await vscode.window.showTextDocument(doc);
+    return 'edit';
+  }
+  if (choice === useDefaults) {
+    return 'defaults';
+  }
+  return 'cancel';
 }
 
 /**
@@ -263,10 +296,15 @@ export class ConfigurationManager {
   private configSource: 'precept.json' | 'settings' | 'defaults' = 'defaults';
   private preceptJsonPath: string | null = null;
   private themeName: string = 'default';
+  private pendingErrorDialog: boolean = false;
+  private errorDismissed: boolean = false;
+  private fallbackDefaults: boolean = false;
   private disposables: vscode.Disposable[] = [];
   private onConfigChangeEmitter = new vscode.EventEmitter<PreceptConfig>();
+  private onConfigErrorEmitter = new vscode.EventEmitter<string>();
 
   public readonly onConfigChange = this.onConfigChangeEmitter.event;
+  public readonly onConfigError = this.onConfigErrorEmitter.event;
 
   private constructor() {}
 
@@ -281,8 +319,8 @@ export class ConfigurationManager {
    * Initialize the configuration manager
    */
   public async initialize(workspaceRoot: string): Promise<void> {
-    // Load initial configuration
-    await this.reload(workspaceRoot);
+    // Load initial configuration (silent — extension.ts handles the startup dialog)
+    await this.silentReload(workspaceRoot);
 
     // Set up precept.json watcher
     this.disposables.push(
@@ -306,10 +344,60 @@ export class ConfigurationManager {
     const result = await loadConfiguration(workspaceRoot);
 
     if (result.success && result.config) {
+      this.pendingErrorDialog = false;
+      this.errorDismissed = false;
+      this.fallbackDefaults = false;
       this.config = result.config;
       this.configSource = result.source;
       this.themeName = result.theme || 'default';
       this.onConfigChangeEmitter.fire(this.config);
+      return;
+    }
+
+    // precept.json exists but is broken
+    if (result.failedConfigPath && !this.pendingErrorDialog && !this.errorDismissed) {
+      this.pendingErrorDialog = true;
+      this.onConfigErrorEmitter.fire(result.error || 'Unknown parse error');
+
+      const choice = await handleBrokenConfig(
+        result.error || 'Unknown parse error',
+        result.failedConfigPath
+      );
+      this.pendingErrorDialog = false;
+      this.errorDismissed = true;
+
+      if (choice === 'defaults') {
+        this.config = DEFAULT_CONFIG;
+        this.configSource = 'defaults';
+        this.themeName = 'default';
+        this.fallbackDefaults = true;
+        this.onConfigChangeEmitter.fire(this.config);
+      }
+      // 'edit' and 'cancel': keep current config unchanged.
+      // The file watcher will re-trigger reload() when the user saves fixes.
+    }
+  }
+
+  /**
+   * Reload without showing a dialog — used by the file watcher.
+   * Updates status bar via events only.
+   */
+  private async silentReload(workspaceRoot: string): Promise<void> {
+    const result = await loadConfiguration(workspaceRoot);
+
+    if (result.success && result.config) {
+      this.fallbackDefaults = false;
+      this.errorDismissed = false;
+      this.config = result.config;
+      this.configSource = result.source;
+      this.themeName = result.theme || 'default';
+      this.onConfigChangeEmitter.fire(this.config);
+      return;
+    }
+
+    // precept.json is still broken — update status bar but don't show a dialog
+    if (result.failedConfigPath) {
+      this.onConfigErrorEmitter.fire(result.error || 'Unknown parse error');
     }
   }
 
@@ -335,6 +423,20 @@ export class ConfigurationManager {
   }
 
   /**
+   * Whether the extension is using default config because precept.json failed to parse
+   */
+  public isUsingFallbackDefaults(): boolean {
+    return this.fallbackDefaults;
+  }
+
+  /**
+   * Mark that we're using fallback defaults (called from activation when user chooses defaults)
+   */
+  public setFallbackDefaults(value: boolean): void {
+    this.fallbackDefaults = value;
+  }
+
+  /**
    * Get precept.json path if found
    */
   public getPreceptJsonPath(): string | null {
@@ -348,5 +450,6 @@ export class ConfigurationManager {
     this.disposables.forEach(d => d.dispose());
     this.disposables = [];
     this.onConfigChangeEmitter.dispose();
+    this.onConfigErrorEmitter.dispose();
   }
 }

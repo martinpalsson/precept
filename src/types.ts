@@ -275,4 +275,6 @@ export interface ConfigLoadResult {
   theme?: string;
   /** Mobile breakpoint in pixels for sidebar hamburger menu (default: 1000) */
   mobileBreakpoint?: number;
+  /** Path to the config file that failed to parse */
+  failedConfigPath?: string;
 }

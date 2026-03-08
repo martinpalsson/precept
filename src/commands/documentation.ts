@@ -76,15 +76,29 @@ export async function buildDocumentation(workspaceRoot: string, indexBuilder?: I
   let theme = 'default';
   let mobileBreakpoint: number | undefined;
   if (jsonPath) {
-    try {
-      const result = await loadConfigFromJson(jsonPath);
-      if (result.success && result.config) {
-        config = result.config;
-        theme = result.theme || 'default';
-        mobileBreakpoint = result.mobileBreakpoint;
+    const result = await loadConfigFromJson(jsonPath);
+    if (result.success && result.config) {
+      config = result.config;
+      theme = result.theme || 'default';
+      mobileBreakpoint = result.mobileBreakpoint;
+    } else {
+      const parseError = result.error || 'Unknown error';
+      channel.appendLine(`WARNING: Failed to parse precept.json: ${parseError}`);
+      channel.appendLine('');
+
+      const choice = await vscode.window.showWarningMessage(
+        `Precept: precept.json failed to parse — ${parseError}. Build with default settings?`,
+        { modal: true },
+        'Build with Defaults'
+      );
+
+      if (choice !== 'Build with Defaults') {
+        channel.appendLine('Build cancelled.');
+        return false;
       }
-    } catch {
-      channel.appendLine('Warning: Failed to load config, using defaults.');
+
+      channel.appendLine('Continuing with default configuration.');
+      channel.appendLine('');
     }
   }
 
