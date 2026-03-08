@@ -54,12 +54,32 @@ export class RstPreviewProvider implements vscode.Disposable {
    * Open or reveal the preview panel for the active RST editor.
    */
   open(): void {
-    const editor = vscode.window.activeTextEditor;
+    let editor = vscode.window.activeTextEditor;
+
+    // If the active editor isn't RST, try to find an open RST document
     if (!editor || editor.document.languageId !== 'restructuredtext') {
+      const rstDoc = vscode.workspace.textDocuments.find(
+        doc => doc.languageId === 'restructuredtext'
+      );
+      if (rstDoc) {
+        // Show the RST document so it becomes the active editor
+        vscode.window.showTextDocument(rstDoc, vscode.ViewColumn.One, true).then(shown => {
+          editor = shown;
+          this.createOrRevealPanel(editor);
+        });
+        return;
+      }
       vscode.window.showInformationMessage('Open an RST file to preview.');
       return;
     }
 
+    this.createOrRevealPanel(editor);
+  }
+
+  /**
+   * Create the webview panel or reveal it if already open.
+   */
+  private createOrRevealPanel(editor: vscode.TextEditor): void {
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Beside, true);
       this.updatePreview(editor.document);
