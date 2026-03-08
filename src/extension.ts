@@ -70,6 +70,11 @@ function updateStatusBar(config: PreceptConfig, source: string, count: number): 
     statusBarItem.tooltip = `Precept — Using default configuration (precept.json is broken)\nRequirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nClick to retry loading configuration`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     statusBarItem.command = 'requirements.reloadConfiguration';
+  } else if (configManager && configManager.isConfigIncomplete()) {
+    statusBarItem.text = `$(warning) Precept: ${count} objects (config incomplete)`;
+    statusBarItem.tooltip = `Precept — Your precept.json is missing configuration fields\nRequirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nClick to reload and add missing fields`;
+    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    statusBarItem.command = 'requirements.reloadConfiguration';
   } else {
     statusBarItem.text = `$(checklist) Precept: ${count} objects`;
     statusBarItem.tooltip = `Precept — Requirements indexed: ${count}\nObject types: ${typeCount}\nLevels: ${levelCount}\nSource: ${source}`;
@@ -259,47 +264,28 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand('requirements.reloadConfiguration', async () => {
       statusBarItem.text = '$(sync~spin) Precept: Reloading...';
+      configManager.resetRepairDismissed();
 
-      try {
-        const result = await loadConfiguration(workspaceRoot);
-        if (result.success && result.config) {
-          config = result.config;
-          updateProvidersConfig(config);
-          cacheManager.updateConfig(config);
+      // Delegate to ConfigurationManager — handles broken config dialogs + migration
+      await configManager.reload(workspaceRoot);
 
-          // Rebuild index
-          await vscode.window.withProgress(
-            {
-              location: vscode.ProgressLocation.Window,
-              title: 'Re-indexing requirements...',
-            },
-            async (progress) => {
-              await indexBuilder.buildFullIndex(workspaceRoot, progress);
-            }
-          );
+      // The onConfigChange listener already updates providers and status bar.
+      // Now rebuild the index with the (possibly updated) config.
+      config = configManager.getConfig();
+      updateProvidersConfig(config);
+      cacheManager.updateConfig(config);
 
-          updateStatusBar(config, result.source, indexBuilder.getCount());
-          vscode.window.showInformationMessage(
-            `Requirements configuration reloaded from ${result.source}`
-          );
-        } else if (result.failedConfigPath) {
-          showConfigError(result.error || 'Unknown error');
-          const choice = await handleBrokenConfig(
-            result.error || 'Unknown parse error',
-            result.failedConfigPath
-          );
-          if (choice === 'defaults') {
-            config = DEFAULT_CONFIG;
-            updateProvidersConfig(config);
-            cacheManager.updateConfig(config);
-            updateStatusBar(config, 'defaults', indexBuilder.getCount());
-          }
-        } else {
-          showConfigError(result.error || 'Unknown error');
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: 'Re-indexing requirements...',
+        },
+        async (progress) => {
+          await indexBuilder.buildFullIndex(workspaceRoot, progress);
         }
-      } catch (error) {
-        showConfigError(error instanceof Error ? error.message : String(error));
-      }
+      );
+
+      updateStatusBar(config, configManager.getConfigSource(), indexBuilder.getCount());
     })
   );
 

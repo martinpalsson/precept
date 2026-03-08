@@ -80,6 +80,15 @@ export const PRECEPT_JSON_TEMPLATE = JSON.stringify({
     ],
   },
 
+  headingStyles: [
+    { char: '#', overline: true },
+    { char: '*', overline: true },
+    { char: '=', overline: false },
+    { char: '-', overline: false },
+    { char: '^', overline: false },
+    { char: '"', overline: false },
+  ],
+
   plantuml: {
     mode: 'local',
     command: 'plantuml',

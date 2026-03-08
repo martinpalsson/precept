@@ -20,6 +20,12 @@ import {
 } from '../types';
 import { DEFAULT_CONFIG, buildIdRegex } from './defaults';
 import { getSettings } from './settingsManager';
+import {
+  needsRepair,
+  repairConfig,
+  promptRepair,
+  writeConfigFile,
+} from './configRepair';
 
 /**
  * Locate precept.json file in the workspace
@@ -299,6 +305,7 @@ export class ConfigurationManager {
   private pendingErrorDialog: boolean = false;
   private errorDismissed: boolean = false;
   private fallbackDefaults: boolean = false;
+  private repairDismissed: boolean = false;
   private disposables: vscode.Disposable[] = [];
   private onConfigChangeEmitter = new vscode.EventEmitter<PreceptConfig>();
   private onConfigErrorEmitter = new vscode.EventEmitter<string>();
@@ -321,6 +328,11 @@ export class ConfigurationManager {
   public async initialize(workspaceRoot: string): Promise<void> {
     // Load initial configuration (silent — extension.ts handles the startup dialog)
     await this.silentReload(workspaceRoot);
+
+    // Check if config is missing expected fields
+    if (this.configSource === 'precept.json' && !this.repairDismissed) {
+      await this.checkAndOfferRepair(workspaceRoot);
+    }
 
     // Set up precept.json watcher
     this.disposables.push(
@@ -351,6 +363,11 @@ export class ConfigurationManager {
       this.configSource = result.source;
       this.themeName = result.theme || 'default';
       this.onConfigChangeEmitter.fire(this.config);
+
+      // Check if config is missing expected fields
+      if (result.source === 'precept.json' && !this.repairDismissed) {
+        await this.checkAndOfferRepair(workspaceRoot);
+      }
       return;
     }
 
@@ -402,6 +419,42 @@ export class ConfigurationManager {
   }
 
   /**
+   * Check for missing fields and offer to add them.
+   * If accepted, writes the updated file and lets the file watcher reload.
+   */
+  private async checkAndOfferRepair(workspaceRoot: string): Promise<void> {
+    const jsonPath = await findPreceptJsonPath(workspaceRoot);
+    if (!jsonPath) {
+      return;
+    }
+
+    try {
+      const content = await fs.promises.readFile(jsonPath, 'utf-8');
+      const rawJson = JSON.parse(content);
+
+      if (!needsRepair(rawJson)) {
+        this.repairDismissed = false;
+        return;
+      }
+
+      const choice = await promptRepair(rawJson);
+
+      if (choice === 'repair') {
+        const repaired = repairConfig(rawJson);
+        await writeConfigFile(jsonPath, repaired);
+        // File watcher will trigger reload with the updated file
+      } else {
+        this.repairDismissed = true;
+      }
+    } catch (error) {
+      console.error('Config repair failed:', error);
+      vscode.window.showWarningMessage(
+        `Precept: Config repair failed — ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
    * Get current configuration
    */
   public getConfig(): PreceptConfig {
@@ -434,6 +487,20 @@ export class ConfigurationManager {
    */
   public setFallbackDefaults(value: boolean): void {
     this.fallbackDefaults = value;
+  }
+
+  /**
+   * Whether the config is missing expected fields (user dismissed the repair prompt).
+   */
+  public isConfigIncomplete(): boolean {
+    return this.repairDismissed;
+  }
+
+  /**
+   * Reset repair dismissal so the prompt will show again on next reload.
+   */
+  public resetRepairDismissed(): void {
+    this.repairDismissed = false;
   }
 
   /**
