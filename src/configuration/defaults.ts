@@ -2,7 +2,7 @@
  * Default configuration when precept.json is not found or parsing fails
  */
 
-import { PreceptConfig, ObjectType, Level, IdConfig, LinkType, Status, CustomFields } from '../types';
+import { PreceptConfig, ObjectType, Level, IdConfig, LinkType, Status, CustomFields, HeadingStyle } from '../types';
 
 export const DEFAULT_OBJECT_TYPES: ObjectType[] = [
   {
@@ -104,6 +104,19 @@ export const DEFAULT_STATUSES: Status[] = [
 export const DEFAULT_CUSTOM_FIELDS: CustomFields = {};
 
 /**
+ * Default heading styles — Python documentation convention.
+ * Index 0 = h1, index 5 = h6.
+ */
+export const DEFAULT_HEADING_STYLES: HeadingStyle[] = [
+  { char: '#', overline: true },   // h1 — Part
+  { char: '*', overline: true },   // h2 — Chapter
+  { char: '=', overline: false },  // h3 — Section
+  { char: '-', overline: false },  // h4 — Subsection
+  { char: '^', overline: false },  // h5 — Subsubsection
+  { char: '"', overline: false },  // h6 — Paragraph
+];
+
+/**
  * Build ID regex from IdConfig
  */
 export function buildIdRegex(idConfig: IdConfig): RegExp {
@@ -127,6 +140,7 @@ export const DEFAULT_CONFIG: PreceptConfig = {
   linkTypes: DEFAULT_LINK_TYPES,
   statuses: DEFAULT_STATUSES,
   customFields: DEFAULT_CUSTOM_FIELDS,
+  headingStyles: DEFAULT_HEADING_STYLES,
   id_regex: DEFAULT_ID_REGEX,
 };
 

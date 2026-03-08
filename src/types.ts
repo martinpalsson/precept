@@ -73,6 +73,15 @@ export interface CustomFieldValue {
 export type CustomFields = Record<string, CustomFieldValue[]>;
 
 /**
+ * Heading style definition for a single section level.
+ * Maps a character + overline flag to a heading depth (h1–h6).
+ */
+export interface HeadingStyle {
+  char: string;       // Underline/overline character (e.g., "#", "=", "-")
+  overline: boolean;  // Whether an overline is required
+}
+
+/**
  * Complete Precept configuration
  */
 export interface PreceptConfig {
@@ -82,6 +91,7 @@ export interface PreceptConfig {
   linkTypes: LinkType[];
   statuses: Status[];
   customFields: CustomFields;   // Custom fields with enumerated values (e.g., product, priority)
+  headingStyles: HeadingStyle[]; // Section heading styles, index 0 = h1, index 5 = h6
   id_regex: RegExp;             // Pattern for project-unique IDs (e.g., /\d{4}/g or /[A-Z]+-\d{4}/g)
   // Melexis.trace configuration (optional)
   traceability_item_id_regex?: string;

@@ -7,6 +7,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { HeadingStyle } from '../types';
 import { parseRstDocument } from './rstFullParser';
 import { BlockNode } from './rstNodes';
 
@@ -32,14 +33,14 @@ export interface TocTree {
  * @param rootFile Absolute path to the root RST file
  * @returns The resolved TocTree
  */
-export function buildTocTree(rootFile: string): TocTree {
+export function buildTocTree(rootFile: string, headingStyles?: HeadingStyle[]): TocTree {
   const docRoot = path.dirname(rootFile);
   const rootSlug = path.basename(rootFile, '.rst');
 
   const visited = new Set<string>();
   const order: string[] = [];
 
-  const rootEntry = resolveEntry(rootSlug, docRoot, visited, order);
+  const rootEntry = resolveEntry(rootSlug, docRoot, visited, order, headingStyles);
 
   return {
     order,
@@ -55,6 +56,7 @@ function resolveEntry(
   docRoot: string,
   visited: Set<string>,
   order: string[],
+  headingStyles?: HeadingStyle[],
 ): TocEntry | null {
   if (visited.has(slug)) return null;
   visited.add(slug);
@@ -66,14 +68,14 @@ function resolveEntry(
   }
 
   const content = fs.readFileSync(filePath, 'utf-8');
-  const doc = parseRstDocument(content);
+  const doc = parseRstDocument(content, headingStyles);
 
   // Extract document title from first section
   const title = doc.title || slug;
 
   // Find toctree directives and collect their entries
   const children: TocEntry[] = [];
-  collectToctreeEntries(doc.children, docRoot, slug, visited, order, children);
+  collectToctreeEntries(doc.children, docRoot, slug, visited, order, children, headingStyles);
 
   return { slug, title, children };
 }
@@ -88,13 +90,14 @@ function collectToctreeEntries(
   visited: Set<string>,
   order: string[],
   children: TocEntry[],
+  headingStyles?: HeadingStyle[],
 ): void {
   for (const node of nodes) {
     if (node.type === 'toctree') {
       for (const entry of node.entries) {
         // Resolve relative paths
         const entrySlug = entry.replace(/^\//, '');
-        const child = resolveEntry(entrySlug, docRoot, visited, order);
+        const child = resolveEntry(entrySlug, docRoot, visited, order, headingStyles);
         if (child) {
           children.push(child);
         }
@@ -103,7 +106,7 @@ function collectToctreeEntries(
 
     // Recurse into sections
     if (node.type === 'section') {
-      collectToctreeEntries(node.children, docRoot, _parentSlug, visited, order, children);
+      collectToctreeEntries(node.children, docRoot, _parentSlug, visited, order, children, headingStyles);
     }
   }
 }

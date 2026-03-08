@@ -11,9 +11,183 @@ describe('rstFullParser', () => {
       expect(section.type).toBe('section');
       if (section.type === 'section') {
         expect(section.title).toBe('Title');
+        expect(section.depth).toBe(3); // = underline-only → h3
+        expect(section.children).toHaveLength(1);
+        expect(section.children[0].type).toBe('paragraph');
+      }
+    });
+
+    it('should parse # with overline as h1', () => {
+      const rst = [
+        '########',
+        'Part One',
+        '########',
+        '',
+        'Content.',
+      ].join('\n');
+
+      const doc = parseRstDocument(rst);
+      expect(doc.title).toBe('Part One');
+      expect(doc.children).toHaveLength(1);
+      const section = doc.children[0];
+      expect(section.type).toBe('section');
+      if (section.type === 'section') {
         expect(section.depth).toBe(1);
         expect(section.children).toHaveLength(1);
         expect(section.children[0].type).toBe('paragraph');
+      }
+    });
+
+    it('should parse * with overline as h2', () => {
+      const rst = [
+        '***************',
+        'Chapter Title',
+        '***************',
+        '',
+        'Content.',
+      ].join('\n');
+
+      const doc = parseRstDocument(rst);
+      const section = doc.children[0];
+      expect(section.type).toBe('section');
+      if (section.type === 'section') {
+        expect(section.depth).toBe(2);
+      }
+    });
+
+    it('should not treat overline as paragraph text', () => {
+      const rst = [
+        '########',
+        'Part One',
+        '########',
+        '',
+        'Body text here.',
+      ].join('\n');
+
+      const doc = parseRstDocument(rst);
+      expect(doc.children).toHaveLength(1);
+      expect(doc.children[0].type).toBe('section');
+      if (doc.children[0].type === 'section') {
+        const paragraphs = doc.children[0].children.filter(n => n.type === 'paragraph');
+        expect(paragraphs).toHaveLength(1);
+      }
+    });
+
+    it('should parse all 6 Python doc convention levels', () => {
+      const rst = [
+        '############',
+        'Part Title',
+        '############',
+        '',
+        '**************',
+        'Chapter Title',
+        '**************',
+        '',
+        'Section Title',
+        '=============',
+        '',
+        'Subsection Title',
+        '----------------',
+        '',
+        'Subsubsection Title',
+        '^^^^^^^^^^^^^^^^^^^',
+        '',
+        'Paragraph Title',
+        '"""""""""""""""',
+        '',
+        'Body text.',
+      ].join('\n');
+
+      const doc = parseRstDocument(rst);
+      const part = doc.children[0];
+      expect(part.type).toBe('section');
+      if (part.type === 'section') {
+        expect(part.depth).toBe(1);
+        expect(part.title).toBe('Part Title');
+
+        const chapter = part.children.find(n => n.type === 'section');
+        expect(chapter).toBeDefined();
+        if (chapter && chapter.type === 'section') {
+          expect(chapter.depth).toBe(2);
+          expect(chapter.title).toBe('Chapter Title');
+
+          const section = chapter.children.find(n => n.type === 'section');
+          expect(section).toBeDefined();
+          if (section && section.type === 'section') {
+            expect(section.depth).toBe(3);
+            expect(section.title).toBe('Section Title');
+
+            const subsection = section.children.find(n => n.type === 'section');
+            expect(subsection).toBeDefined();
+            if (subsection && subsection.type === 'section') {
+              expect(subsection.depth).toBe(4);
+              expect(subsection.title).toBe('Subsection Title');
+
+              const subsubsection = subsection.children.find(n => n.type === 'section');
+              expect(subsubsection).toBeDefined();
+              if (subsubsection && subsubsection.type === 'section') {
+                expect(subsubsection.depth).toBe(5);
+                expect(subsubsection.title).toBe('Subsubsection Title');
+
+                const paragraph = subsubsection.children.find(n => n.type === 'section');
+                expect(paragraph).toBeDefined();
+                if (paragraph && paragraph.type === 'section') {
+                  expect(paragraph.depth).toBe(6);
+                  expect(paragraph.title).toBe('Paragraph Title');
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    it('should reject unsupported heading styles', () => {
+      // ~ without overline is not a supported style in the default convention
+      const rst = 'Title\n~~~~~\n\nContent.';
+      const doc = parseRstDocument(rst);
+      expect(doc.children[0].type).not.toBe('section');
+    });
+
+    it('should use custom heading styles from config', () => {
+      const customStyles = [
+        { char: '=', overline: true },   // h1
+        { char: '=', overline: false },  // h2
+        { char: '-', overline: false },  // h3
+      ];
+
+      const rst = [
+        '===========',
+        'Part Title',
+        '===========',
+        '',
+        'Section',
+        '=======',
+        '',
+        'Subsection',
+        '----------',
+        '',
+        'Text.',
+      ].join('\n');
+
+      const doc = parseRstDocument(rst, customStyles);
+      const part = doc.children[0];
+      expect(part.type).toBe('section');
+      if (part.type === 'section') {
+        expect(part.depth).toBe(1);
+        expect(part.title).toBe('Part Title');
+
+        const section = part.children.find(n => n.type === 'section');
+        expect(section).toBeDefined();
+        if (section && section.type === 'section') {
+          expect(section.depth).toBe(2);
+
+          const subsection = section.children.find(n => n.type === 'section');
+          expect(subsection).toBeDefined();
+          if (subsection && subsection.type === 'section') {
+            expect(subsection.depth).toBe(3);
+          }
+        }
       }
     });
 
@@ -34,12 +208,12 @@ describe('rstFullParser', () => {
       expect(doc.title).toBe('Chapter');
       const chapter = doc.children[0];
       if (chapter.type === 'section') {
-        expect(chapter.depth).toBe(1);
+        expect(chapter.depth).toBe(3); // = underline → h3
         // Should contain the intro paragraph and the subsection
         const subsections = chapter.children.filter(n => n.type === 'section');
         expect(subsections.length).toBe(1);
         if (subsections[0].type === 'section') {
-          expect(subsections[0].depth).toBe(2);
+          expect(subsections[0].depth).toBe(4); // - underline → h4
           expect(subsections[0].title).toBe('Section');
         }
       }

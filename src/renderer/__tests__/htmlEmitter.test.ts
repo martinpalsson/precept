@@ -11,6 +11,14 @@ const defaultConfig: PreceptConfig = {
   linkTypes: [],
   statuses: [{ status: 'draft', color: '#ccc' }],
   customFields: {},
+  headingStyles: [
+    { char: '#', overline: true },
+    { char: '*', overline: true },
+    { char: '=', overline: false },
+    { char: '-', overline: false },
+    { char: '^', overline: false },
+    { char: '"', overline: false },
+  ],
   id_regex: /\d{4}/g,
 };
 
@@ -65,7 +73,7 @@ describe('htmlEmitter', () => {
     it('should render a section with heading', () => {
       const doc = parseRstDocument('Title\n=====\n\nContent.');
       const html = renderDocument(doc, ctx);
-      expect(html).toContain('<h1');
+      expect(html).toContain('<h3'); // = underline-only → h3
       expect(html).toContain('Title');
       expect(html).toContain('<p>Content.</p>');
     });
@@ -163,7 +171,7 @@ describe('htmlEmitter', () => {
       const doc = parseRstDocument(rst);
       const html = renderDocument(doc, ctx);
 
-      expect(html).toContain('<h1');
+      expect(html).toContain('<h3'); // = underline-only → h3
       expect(html).toContain('My Document');
       expect(html).toContain('<p>Introduction paragraph.</p>');
       expect(html).toContain('class="admonition note"');

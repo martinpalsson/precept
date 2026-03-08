@@ -203,7 +203,7 @@ export class RstPreviewProvider implements vscode.Disposable {
    */
   private renderRst(text: string, uri: vscode.Uri): string {
     try {
-      const doc = parseRstDocument(text);
+      const doc = parseRstDocument(text, this.config.headingStyles);
       const index = this.indexBuilder.getIndex();
       const ctx: RenderContext = {
         config: this.config,

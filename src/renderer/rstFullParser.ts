@@ -32,10 +32,34 @@ import {
   GenericDirectiveNode,
   InlineNode,
 } from './rstNodes';
+import { HeadingStyle } from '../types';
 import { parseInline } from './inlineParser';
 
-// Section underline characters in RST
+// All valid RST section underline/overline characters
 const SECTION_CHARS = new Set(['=', '-', '~', '^', '"', '#', '*', '+', '`', '_']);
+
+// Default heading styles — Python documentation convention
+const DEFAULT_HEADING_STYLES: HeadingStyle[] = [
+  { char: '#', overline: true },
+  { char: '*', overline: true },
+  { char: '=', overline: false },
+  { char: '-', overline: false },
+  { char: '^', overline: false },
+  { char: '"', overline: false },
+];
+
+/**
+ * Build a depth map from heading styles.
+ * Key format: character for underline-only, character + '_over' for overline+underline.
+ */
+function buildSectionDepthMap(styles: HeadingStyle[]): Record<string, number> {
+  const map: Record<string, number> = {};
+  for (let i = 0; i < styles.length && i < 6; i++) {
+    const key = styles[i].overline ? `${styles[i].char}_over` : styles[i].char;
+    map[key] = i + 1;
+  }
+  return map;
+}
 const ADMONITION_TYPES = new Set([
   'note', 'warning', 'tip', 'important', 'caution', 'danger',
   'error', 'hint', 'attention', 'seealso',
@@ -43,10 +67,12 @@ const ADMONITION_TYPES = new Set([
 
 /**
  * Parse an RST document string into an AST.
+ * @param headingStyles Optional heading style config. Defaults to Python documentation convention.
  */
-export function parseRstDocument(text: string): RstDocument {
+export function parseRstDocument(text: string, headingStyles?: HeadingStyle[]): RstDocument {
+  const depthMap = buildSectionDepthMap(headingStyles || DEFAULT_HEADING_STYLES);
   const lines = text.split('\n');
-  const nodes = parseBlocks(lines, 0, 0);
+  const nodes = parseBlocks(lines, 0, 0, depthMap);
   const title = findDocumentTitle(nodes);
   return { children: nodes, title };
 }
@@ -66,12 +92,9 @@ function findDocumentTitle(nodes: BlockNode[]): string | undefined {
 /**
  * Parse a sequence of lines into block nodes, starting at a given indent level.
  */
-function parseBlocks(lines: string[], startLine: number, minIndent: number): BlockNode[] {
+function parseBlocks(lines: string[], startLine: number, minIndent: number, depthMap: Record<string, number> = {}): BlockNode[] {
   const nodes: BlockNode[] = [];
   let i = startLine;
-
-  // Track section underline character order to determine depth
-  const sectionCharOrder: string[] = [];
 
   while (i < lines.length) {
     const line = lines[i];
@@ -90,7 +113,7 @@ function parseBlocks(lines: string[], startLine: number, minIndent: number): Blo
     }
 
     // Check for section heading: text line followed by underline
-    const sectionResult = tryParseSection(lines, i, sectionCharOrder);
+    const sectionResult = tryParseSection(lines, i, depthMap);
     if (sectionResult) {
       nodes.push(sectionResult.node);
       i = sectionResult.nextLine;
@@ -189,11 +212,58 @@ interface ParseResult<T> {
   nextLine: number;
 }
 
+/**
+ * Look up the heading depth for a section style from the depth map.
+ * Returns null if the style is not configured.
+ */
+function getSectionDepth(depthMap: Record<string, number>, charKey: string): number | null {
+  return depthMap[charKey] ?? null;
+}
+
 function tryParseSection(
   lines: string[],
   i: number,
-  sectionCharOrder: string[]
+  depthMap: Record<string, number>,
 ): ParseResult<SectionNode> | null {
+  // --- Overline form: overline + title + underline (3 lines) ---
+  if (i + 2 < lines.length) {
+    const possibleOverline = lines[i].trim();
+    if (possibleOverline.length > 0 &&
+        SECTION_CHARS.has(possibleOverline[0]) &&
+        possibleOverline.split('').every(c => c === possibleOverline[0]) &&
+        getIndent(lines[i]) === 0) {
+      const titleLine = lines[i + 1];
+      const underlineLine = lines[i + 2].trim();
+      if (!isBlank(titleLine) && getIndent(titleLine) === 0 &&
+          underlineLine.length > 0 &&
+          underlineLine.split('').every(c => c === possibleOverline[0]) &&
+          possibleOverline.length >= titleLine.trim().length &&
+          underlineLine.length >= titleLine.trim().length) {
+        const charKey = `${possibleOverline[0]}_over`;
+        const depth = getSectionDepth(depthMap, charKey);
+        if (depth === null) return null; // unsupported style
+
+        const title = titleLine.trim();
+        const id = slugify(title);
+        const bodyStart = i + 3;
+        const bodyNodes = parseSectionBody(lines, bodyStart, depth, depthMap);
+
+        return {
+          node: {
+            type: 'section',
+            depth,
+            title,
+            titleInline: parseInline(title),
+            children: bodyNodes.nodes,
+            id,
+          },
+          nextLine: bodyNodes.nextLine,
+        };
+      }
+    }
+  }
+
+  // --- Underline-only form: title + underline (2 lines) ---
   if (i + 1 >= lines.length) return null;
 
   const titleLine = lines[i];
@@ -210,31 +280,14 @@ function tryParseSection(
   if (!trimmedUnderline.split('').every(c => c === underlineChar)) return null;
   if (trimmedUnderline.length < titleLine.trim().length) return null;
 
-  // Check for overline (line before title that is also an underline)
-  let hasOverline = false;
-  if (i > 0) {
-    const prevLine = lines[i - 1].trim();
-    if (prevLine.length >= titleLine.trim().length &&
-        prevLine.split('').every(c => c === underlineChar)) {
-      hasOverline = true;
-    }
-  }
-
-  // Determine section depth
-  const charKey = hasOverline ? `${underlineChar}_over` : underlineChar;
-  let depthIndex = sectionCharOrder.indexOf(charKey);
-  if (depthIndex === -1) {
-    sectionCharOrder.push(charKey);
-    depthIndex = sectionCharOrder.length - 1;
-  }
-  const depth = depthIndex + 1;
+  const depth = getSectionDepth(depthMap, underlineChar);
+  if (depth === null) return null; // unsupported style
 
   const title = titleLine.trim();
   const id = slugify(title);
 
-  // Parse section body (everything until next section at same or higher level)
   const bodyStart = i + 2;
-  const bodyNodes = parseSectionBody(lines, bodyStart, sectionCharOrder, depth);
+  const bodyNodes = parseSectionBody(lines, bodyStart, depth, depthMap);
 
   return {
     node: {
@@ -252,26 +305,46 @@ function tryParseSection(
 function parseSectionBody(
   lines: string[],
   startLine: number,
-  sectionCharOrder: string[],
-  currentDepth: number
+  currentDepth: number,
+  depthMap: Record<string, number>,
 ): { nodes: BlockNode[]; nextLine: number } {
   const nodes: BlockNode[] = [];
   let i = startLine;
 
   while (i < lines.length) {
     // Check if we hit a section heading at same or higher level
+
+    // Check for overline form: lines[i] is overline, lines[i+1] is title, lines[i+2] is underline
+    if (i + 2 < lines.length && !isBlank(lines[i])) {
+      const potentialOverline = lines[i].trim();
+      if (potentialOverline.length > 0 &&
+          SECTION_CHARS.has(potentialOverline[0]) &&
+          potentialOverline.split('').every(c => c === potentialOverline[0]) &&
+          getIndent(lines[i]) === 0) {
+        const titleLine = lines[i + 1];
+        const underlineLine = lines[i + 2].trim();
+        if (!isBlank(titleLine) && getIndent(titleLine) === 0 &&
+            underlineLine.length > 0 &&
+            underlineLine.split('').every(c => c === potentialOverline[0]) &&
+            potentialOverline.length >= titleLine.trim().length &&
+            underlineLine.length >= titleLine.trim().length) {
+          const charKey = `${potentialOverline[0]}_over`;
+          const depth = getSectionDepth(depthMap, charKey);
+          if (depth !== null && depth <= currentDepth) {
+            return { nodes, nextLine: i };
+          }
+        }
+      }
+    }
+
+    // Check for underline-only form: lines[i] is title, lines[i+1] is underline
     if (i + 1 < lines.length && !isBlank(lines[i]) && !isBlank(lines[i + 1])) {
       const potentialUnderline = lines[i + 1].trim();
       if (potentialUnderline.length >= lines[i].trim().length) {
         const uc = potentialUnderline[0];
         if (SECTION_CHARS.has(uc) && potentialUnderline.split('').every(c => c === uc)) {
-          // Check if this would be same or higher level
-          const hasOverline = i > 0 && lines[i - 1].trim().split('').every(c => c === uc) &&
-                              lines[i - 1].trim().length >= lines[i].trim().length;
-          const charKey = hasOverline ? `${uc}_over` : uc;
-          const existingIdx = sectionCharOrder.indexOf(charKey);
-          if (existingIdx !== -1 && existingIdx + 1 <= currentDepth) {
-            // Same or higher level section — stop parsing this section's body
+          const depth = getSectionDepth(depthMap, uc);
+          if (depth !== null && depth <= currentDepth) {
             return { nodes, nextLine: i };
           }
         }
@@ -286,7 +359,7 @@ function parseSectionBody(
     }
 
     // Try parsing sub-section
-    const sectionResult = tryParseSection(lines, i, sectionCharOrder);
+    const sectionResult = tryParseSection(lines, i, depthMap);
     if (sectionResult) {
       nodes.push(sectionResult.node);
       i = sectionResult.nextLine;
@@ -294,7 +367,7 @@ function parseSectionBody(
     }
 
     // Try other block elements
-    const blockResult = parseSingleBlock(lines, i, 0, sectionCharOrder);
+    const blockResult = parseSingleBlock(lines, i, 0);
     if (blockResult) {
       nodes.push(blockResult.node);
       i = blockResult.nextLine;
@@ -314,7 +387,6 @@ function parseSingleBlock(
   lines: string[],
   i: number,
   minIndent: number,
-  _sectionCharOrder: string[]
 ): ParseResult<BlockNode> | null {
   const line = lines[i];
   if (isBlank(line)) return null;

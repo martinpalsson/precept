@@ -24,6 +24,14 @@ const defaultConfig: PreceptConfig = {
   ],
   statuses: [{ status: 'draft', color: '#ccc' }],
   customFields: {},
+  headingStyles: [
+    { char: '#', overline: true },
+    { char: '*', overline: true },
+    { char: '=', overline: false },
+    { char: '-', overline: false },
+    { char: '^', overline: false },
+    { char: '"', overline: false },
+  ],
   id_regex: /\d{4}/g,
 };
 

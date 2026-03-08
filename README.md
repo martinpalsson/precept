@@ -326,7 +326,26 @@ Define custom metadata fields with enumerated values for IntelliSense completion
    :product: widget-pro
 ```
 
-#### 6. Theme (`theme`)
+#### 6. Heading Styles (`headingStyles`)
+
+Configure which characters and forms are used for each section heading level. Each entry defines one heading level (h1 through h6), with `char` specifying the underline/overline character and `overline` specifying whether an overline is used.
+
+```json
+{
+  "headingStyles": [
+    { "char": "#", "overline": true },
+    { "char": "*", "overline": true },
+    { "char": "=", "overline": false },
+    { "char": "-", "overline": false },
+    { "char": "^", "overline": false },
+    { "char": "\"", "overline": false }
+  ]
+}
+```
+
+The first entry is h1, the second is h2, and so on up to h6. If omitted, the [Python documentation convention](https://devguide.python.org/documentation/markup/#sections) shown above is used as the default.
+
+#### 7. Theme (`theme`)
 
 Select a visual theme for preview and static HTML output:
 
@@ -394,7 +413,15 @@ Here's a complete `precept.json`:
       { "value": "medium", "title": "Medium" },
       { "value": "low", "title": "Low" }
     ]
-  }
+  },
+  "headingStyles": [
+    { "char": "#", "overline": true },
+    { "char": "*", "overline": true },
+    { "char": "=", "overline": false },
+    { "char": "-", "overline": false },
+    { "char": "^", "overline": false },
+    { "char": "\"", "overline": false }
+  ]
 }
 ```
 
@@ -427,6 +454,20 @@ Additional settings can be configured in `.vscode/settings.json`:
 | `treeView.showStatusIcons` | `true` | Show status icons in tree view |
 | `indexing.maxFiles` | `1000` | Maximum RST files to index |
 | `indexing.excludePatterns` | `["**/build/**"]` | Glob patterns to exclude |
+
+### Section Headings
+Precept differs from Sphinx/RST in that explicit header declarations are used. Exactly how the headers are declared can be configured in precept.json and the default settings are based on the [Python documentation convention](https://devguide.python.org/documentation/markup/#sections).
+
+| Level | RST syntax | HTML |
+|-------|------------|------|
+| h1 — Part | `####`<br>`Part`<br>`####` | `<h1>` |
+| h2 — Chapter | `*******`<br>`Chapter`<br>`*******` | `<h2>` |
+| h3 — Section | `Section`<br>`=======` | `<h3>` |
+| h4 — Subsection | `Subsection`<br>`----------` | `<h4>` |
+| h5 — Subsubsection | `Subsubsection`<br>`^^^^^^^^^^^^^` | `<h5>` |
+| h6 — Paragraph | `Paragraph`<br>`"""""""""` | `<h6>` |
+
+The underline (and overline, if present) must be **at least as long** as the title text.
 
 ## Usage
 

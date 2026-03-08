@@ -15,6 +15,7 @@ import {
   Status,
   CustomFields,
   CustomFieldValue,
+  HeadingStyle,
   ConfigLoadResult,
 } from '../types';
 import { DEFAULT_CONFIG, buildIdRegex } from './defaults';
@@ -71,6 +72,7 @@ function parseRawConfig(raw: {
   linkTypes?: Array<Record<string, unknown>>;
   statuses?: Array<Record<string, unknown>>;
   customFields?: Record<string, Array<Record<string, unknown>>>;
+  headingStyles?: Array<Record<string, unknown>>;
   extraOptions?: string[];
   defaultStatus?: string;
   idRegex?: string;
@@ -121,6 +123,12 @@ function parseRawConfig(raw: {
     }
   }
 
+  // Parse heading styles
+  const headingStyles: HeadingStyle[] = (raw.headingStyles || []).map((h) => ({
+    char: String(h.char || ''),
+    overline: Boolean(h.overline),
+  })).filter(h => h.char.length === 1);
+
   // Build ID regex from idConfig
   const id_regex = buildIdRegex(idConfig);
 
@@ -131,6 +139,7 @@ function parseRawConfig(raw: {
     linkTypes: ensureReferencesLinkType(linkTypes.length > 0 ? linkTypes : DEFAULT_CONFIG.linkTypes),
     statuses: statuses.length > 0 ? statuses : DEFAULT_CONFIG.statuses,
     customFields,
+    headingStyles: headingStyles.length > 0 ? headingStyles : DEFAULT_CONFIG.headingStyles,
     id_regex,
     traceability_item_id_regex: raw.idRegex,
     traceability_relationships: raw.relationships,
@@ -181,6 +190,7 @@ export function loadConfigFromSettings(): ConfigLoadResult {
   const config: PreceptConfig = {
     ...DEFAULT_CONFIG,
     objectTypes: settings.config.customTypes,
+    headingStyles: DEFAULT_CONFIG.headingStyles,
   };
 
   return {

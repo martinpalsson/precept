@@ -63,7 +63,7 @@ export function buildStaticSite(options: BuildOptions): BuildResult {
   // Build toctree to determine file set and navigation
   let tocTree: TocTree;
   try {
-    tocTree = buildTocTree(entryPoint);
+    tocTree = buildTocTree(entryPoint, config.headingStyles);
   } catch (err) {
     return {
       success: false,
@@ -102,7 +102,7 @@ export function buildStaticSite(options: BuildOptions): BuildResult {
 
     try {
       const rstContent = fs.readFileSync(rstFile, 'utf-8');
-      const doc = parseRstDocument(rstContent);
+      const doc = parseRstDocument(rstContent, config.headingStyles);
 
       const ctx: RenderContext = {
         config,
