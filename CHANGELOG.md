@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0] - 2026-03-10
+
+### Added
+- Hamburger menu for sidebar navigation on narrow screens
+- "Open in Browser" button after building documentation
+- Configuration migration: automatic detection and inclusion of missing precept.json settings when upgrading
+
+### Fixed
+- Preview panel now opens on first click when a project is already active (#16)
+- Configuration error handling: status bar turns red with prompt to fix or use defaults
+
+### Changed
+- Reworked header concept in rendered output
+
 ## [0.1.0] - 2025-02-25
 
 ### Added
