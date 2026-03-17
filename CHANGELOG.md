@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-03-17
+
+### Fixed
+- Editing lag when project contains multiple PlantUML graphics (#18)
+  - Added caching for PlantUML encoding so unchanged diagrams skip the expensive synchronous deflate compression on re-renders
+
 ## [0.2.0] - 2026-03-10
 
 ### Added

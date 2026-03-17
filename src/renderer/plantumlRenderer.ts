@@ -112,13 +112,27 @@ function renderServer(source: string, serverUrl: string): Promise<string | null>
 // ---------------------------------------------------------------------------
 
 /**
+ * Cache of encoded PlantUML strings, keyed by source content.
+ * Avoids repeated synchronous deflate compression during re-renders
+ * when diagram source hasn't changed.
+ */
+const encodedCache = new Map<string, string>();
+
+/**
  * Encode PlantUML source for use in a server URL.
  *
  * Algorithm: raw UTF-8 → deflate (raw, no header) → PlantUML base64.
+ * Results are cached so unchanged diagrams skip the expensive deflate step.
  */
 export function encodePlantUml(source: string): string {
+  const cached = encodedCache.get(source);
+  if (cached !== undefined) {
+    return cached;
+  }
   const deflated = zlib.deflateRawSync(Buffer.from(source, 'utf-8'));
-  return toPlantUmlBase64(deflated);
+  const encoded = toPlantUmlBase64(deflated);
+  encodedCache.set(source, encoded);
+  return encoded;
 }
 
 // PlantUML uses a custom base64 alphabet
