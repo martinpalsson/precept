@@ -5,6 +5,8 @@
 ### Fixed
 - Editing lag when project contains multiple PlantUML graphics (#18)
   - Added caching for PlantUML encoding so unchanged diagrams skip the expensive synchronous deflate compression on re-renders
+- Auto-generated IDs no longer reuse IDs from unsaved files (#17)
+  - ID generation now scans open editor buffers so unsaved items are accounted for
 
 ## [0.2.0] - 2026-03-10
 

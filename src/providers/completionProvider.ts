@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import { IndexBuilder } from '../indexing/indexBuilder';
 import { PreceptConfig, RequirementObject, Level } from '../types';
 import { isInLinkContext, isInInlineItemContext } from '../indexing/rstParser';
-import { getLinkOptionNames, getStatusNames, getObjectTypeInfo, getLevelInfo, getCustomFieldNames, getCustomFieldValues } from '../configuration/defaults';
+import { getLinkOptionNames, getStatusNames, getObjectTypeInfo, getLevelInfo, getCustomFieldNames, getCustomFieldValues, buildIdRegex, parseIdNumber } from '../configuration/defaults';
 import { generateNextId } from '../utils/idGenerator';
 
 /**
@@ -606,8 +606,16 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
 
     // Add dynamic snippet completions for inserting new requirements
     if (directiveInfo.isAtDirectivePosition) {
+      // Include IDs from unsaved editor buffers so we don't reuse IDs before save
+      const bufferIds = extractIdsFromOpenBuffers(this.config);
+      const indexedIdSet = new Set(requirements.map(r => r.id));
+      const unsavedReqs = bufferIds
+        .filter(id => !indexedIdSet.has(id))
+        .map(id => ({ id } as RequirementObject));
+      const allRequirements = requirements.concat(unsavedReqs);
+
       // Generate the next ID (project-global)
-      const nextId = generateNextId(this.config.idConfig, requirements);
+      const nextId = generateNextId(this.config.idConfig, allRequirements);
 
       // Add generic snippet (select level from dropdown)
       const genericItem = createGenericSnippetCompletion(nextId, this.config, directiveInfo.replaceRange);
@@ -669,6 +677,33 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
 /**
  * Register the completion provider
  */
+/**
+ * Extract IDs from all open RST editor buffers (including unsaved content).
+ * This ensures ID generation accounts for IDs that exist in the editor
+ * but haven't been saved to disk yet.
+ */
+function extractIdsFromOpenBuffers(config: PreceptConfig): string[] {
+  const idRegex = buildIdRegex(config.idConfig);
+  const ids: string[] = [];
+
+  for (const doc of vscode.workspace.textDocuments) {
+    if (doc.languageId !== 'restructuredtext') {
+      continue;
+    }
+    const text = doc.getText();
+    let match: RegExpExecArray | null;
+    idRegex.lastIndex = 0;
+    while ((match = idRegex.exec(text)) !== null) {
+      const id = match[0];
+      if (parseIdNumber(config.idConfig, id) !== null) {
+        ids.push(id);
+      }
+    }
+  }
+
+  return ids;
+}
+
 export function registerCompletionProvider(
   context: vscode.ExtensionContext,
   indexBuilder: IndexBuilder,
