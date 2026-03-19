@@ -8,3 +8,4 @@ export * from './definitionProvider';
 export * from './referenceProvider';
 export * from './diagnosticProvider';
 export * from './codeActionProvider';
+export { ImagePasteProvider } from './imagePasteProvider';

@@ -88,6 +88,10 @@
         "icon": "$(group-by-ref-type)"
       },
       {
+        "command": "requirements.insertImage",
+        "title": "Precept: Insert Image"
+      },
+      {
         "command": "requirements.signItem",
         "title": "Precept: Sign Requirement"
       },

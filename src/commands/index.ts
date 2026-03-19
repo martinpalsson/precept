@@ -8,3 +8,4 @@ export * from './reports';
 export * from './project';
 export * from './documentation';
 export * from './signing';
+export * from './insertImage';
