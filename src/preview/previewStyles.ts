@@ -195,14 +195,16 @@ img {
 
 .precept-body {
   flex: 1 1 70%;
-  min-width: 300px;
+  min-width: 0;
   padding: 0.5em 0.75em 0.5em 1em;
   background: var(--precept-bg-content);
   color: var(--precept-text-primary);
+  overflow: hidden;
 }
 
 .precept-body > *:first-child { margin-top: 0; }
 .precept-body > *:last-child { margin-bottom: 0; }
+.precept-body img { max-width: 100%; height: auto; }
 
 .precept-item:has(.precept-signature) .precept-body {
   padding-bottom: 0;

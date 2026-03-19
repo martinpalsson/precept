@@ -205,10 +205,16 @@ export const PRECEPT_CSS_TEMPLATE = `/* ========================================
 
 .precept-body {
     flex: 1 1 70%;
-    min-width: 300px;
+    min-width: 0;
     padding: 0.5em 0.75em 0.5em 1em !important;
     background: var(--precept-bg-content);
     color: var(--precept-text-primary);
+    overflow: hidden;
+}
+
+.precept-body img {
+    max-width: 100%;
+    height: auto;
 }
 
 .precept-body > *:first-child {

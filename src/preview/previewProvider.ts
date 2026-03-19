@@ -52,6 +52,71 @@ export class RstPreviewProvider implements vscode.Disposable {
   }
 
   /**
+   * Restore a previously serialized webview panel (called on VS Code restart).
+   */
+  restorePanel(panel: vscode.WebviewPanel): void {
+    this.panel = panel;
+
+    panel.onDidDispose(() => {
+      this.panel = undefined;
+    }, null, this.disposables);
+
+    this.setupPanelListeners();
+
+    // Show loading state immediately
+    panel.webview.html = this.wrapHtml(
+      '<p style="text-align:center;opacity:0.5;margin-top:2em;">Loading preview…</p>'
+    );
+
+    // Try to render now if a document is already available
+    if (this.tryRenderFromOpenDocuments()) {
+      return;
+    }
+
+    // Documents may not be loaded yet — wait for one to open
+    const onOpen = vscode.workspace.onDidOpenTextDocument(doc => {
+      if (doc.languageId === 'restructuredtext') {
+        onOpen.dispose();
+        this.updatePreview(doc);
+      }
+    });
+    this.disposables.push(onOpen);
+
+    // Also listen for editor activation (covers the case where the doc
+    // is already open but wasn't enumerable yet)
+    const onEditor = vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor && editor.document.languageId === 'restructuredtext') {
+        onEditor.dispose();
+        this.updatePreview(editor.document);
+      }
+    });
+    this.disposables.push(onEditor);
+  }
+
+  /**
+   * Try to render from currently open documents. Returns true if successful.
+   */
+  private tryRenderFromOpenDocuments(): boolean {
+    const editor = vscode.window.visibleTextEditors.find(
+      e => e.document.languageId === 'restructuredtext'
+    );
+    if (editor) {
+      this.updatePreview(editor.document);
+      return true;
+    }
+
+    const rstDoc = vscode.workspace.textDocuments.find(
+      doc => doc.languageId === 'restructuredtext'
+    );
+    if (rstDoc) {
+      this.updatePreview(rstDoc);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Open or reveal the preview panel for the active RST editor.
    */
   open(): void {
@@ -87,13 +152,16 @@ export class RstPreviewProvider implements vscode.Disposable {
       return;
     }
 
+    const workspaceRoots = (vscode.workspace.workspaceFolders || [])
+      .map(f => f.uri);
+
     this.panel = vscode.window.createWebviewPanel(
       'preceptPreview',
       'RST Preview',
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       {
         enableScripts: true,
-        localResourceRoots: [],
+        localResourceRoots: workspaceRoots,
       },
     );
 
@@ -101,6 +169,14 @@ export class RstPreviewProvider implements vscode.Disposable {
       this.panel = undefined;
     }, null, this.disposables);
 
+    this.setupPanelListeners();
+    this.updatePreview(editor.document);
+  }
+
+  /**
+   * Set up event listeners for the webview panel.
+   */
+  private setupPanelListeners(): void {
     // Subscribe to document changes (live update)
     this.disposables.push(
       vscode.workspace.onDidChangeTextDocument(e => {
@@ -140,8 +216,6 @@ export class RstPreviewProvider implements vscode.Disposable {
         this.scheduleUpdate();
       }),
     );
-
-    this.updatePreview(editor.document);
   }
 
   /**
@@ -215,8 +289,9 @@ export class RstPreviewProvider implements vscode.Disposable {
 
     const rstText = document.getText();
     const bodyHtml = this.renderRst(rstText, document.uri);
+    const resolvedHtml = this.resolveLocalImages(bodyHtml, document.uri);
 
-    this.panel.webview.html = this.wrapHtml(bodyHtml);
+    this.panel.webview.html = this.wrapHtml(resolvedHtml);
   }
 
   /**
@@ -240,6 +315,29 @@ export class RstPreviewProvider implements vscode.Disposable {
   }
 
   /**
+   * Rewrite relative image src attributes to webview-safe URIs.
+   */
+  private resolveLocalImages(html: string, documentUri: vscode.Uri): string {
+    if (!this.panel) return html;
+    const baseDir = path.dirname(documentUri.fsPath);
+    const webview = this.panel.webview;
+
+    return html.replace(
+      /(<img\s[^>]*src=")([^"]+)(")/g,
+      (_match, prefix, src, suffix) => {
+        // Skip data URIs, http(s), and already-resolved webview URIs
+        if (/^(data:|https?:|vscode-resource:)/i.test(src)) {
+          return `${prefix}${src}${suffix}`;
+        }
+        // Resolve relative path to absolute, then convert to webview URI
+        const absPath = path.resolve(baseDir, src);
+        const webviewUri = webview.asWebviewUri(vscode.Uri.file(absPath));
+        return `${prefix}${webviewUri}${suffix}`;
+      }
+    );
+  }
+
+  /**
    * Wrap body HTML in a full HTML page with styles and CSP.
    */
   private wrapHtml(body: string): string {
@@ -251,7 +349,7 @@ export class RstPreviewProvider implements vscode.Disposable {
       "default-src 'none'",
       "style-src 'unsafe-inline'",
       `script-src 'nonce-${nonce}'`,
-      "img-src data: vscode-resource: https://www.plantuml.com https:",
+      `img-src data: ${this.panel!.webview.cspSource} https://www.plantuml.com https:`,
     ].join('; ');
 
     // Detect VS Code colour theme kind for light/dark variant

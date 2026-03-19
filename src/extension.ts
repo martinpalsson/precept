@@ -39,8 +39,10 @@ import {
   registerDocumentationCommands,
   registerSigningCommands,
   SigningCommandManager,
+  registerInsertImageCommand,
 } from './commands';
 import { RstPreviewProvider } from './preview';
+import { ImagePasteProvider } from './providers';
 import { PreceptConfig } from './types';
 import { DEFAULT_CONFIG } from './configuration/defaults';
 
@@ -59,6 +61,7 @@ let codeActionProvider: RequirementCodeActionProvider;
 let treeViewProvider: RequirementTreeDataProvider;
 let relationshipExplorerProvider: RelationshipExplorerProvider;
 let signingManager: SigningCommandManager;
+let pasteProvider: ImagePasteProvider;
 let previewProvider: RstPreviewProvider;
 
 /**
@@ -129,6 +132,9 @@ function updateProvidersConfig(config: PreceptConfig): void {
   if (signingManager) {
     signingManager.updateConfig(config);
   }
+  if (pasteProvider) {
+    pasteProvider.updateConfig(config);
+  }
   if (previewProvider) {
     previewProvider.updateConfig(config);
   }
@@ -142,6 +148,24 @@ function updateProvidersConfig(config: PreceptConfig): void {
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   console.log('Precept Requirements extension is activating...');
+
+  // Register webview serializer BEFORE any awaits — VS Code deserializes
+  // panels synchronously during activation and will discard them if no
+  // serializer is registered in time.
+  let deferredPanel: vscode.WebviewPanel | undefined;
+  context.subscriptions.push(
+    vscode.window.registerWebviewPanelSerializer('preceptPreview', {
+      async deserializeWebviewPanel(panel: vscode.WebviewPanel, _state: unknown) {
+        if (previewProvider) {
+          previewProvider.restorePanel(panel);
+        } else {
+          // Provider not ready yet — stash the panel for later
+          deferredPanel = panel;
+          panel.webview.html = '<html><body><p style="text-align:center;opacity:0.5;margin-top:2em;">Loading preview…</p></body></html>';
+        }
+      },
+    })
+  );
 
   // Get workspace root
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -259,6 +283,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register signing commands
   signingManager = registerSigningCommands(context, indexBuilder, config);
 
+  // Register insert image command
+  const imageCommands = registerInsertImageCommand(context, indexBuilder, config);
+  imageCommands.forEach(cmd => context.subscriptions.push(cmd));
+
+  // Register image paste provider (clipboard)
+  const rstSelector: vscode.DocumentSelector = { language: 'restructuredtext', scheme: 'file' };
+  pasteProvider = new ImagePasteProvider(config, indexBuilder);
+  context.subscriptions.push(
+    vscode.languages.registerDocumentPasteEditProvider(
+      rstSelector,
+      pasteProvider,
+      {
+        pasteMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
+        providedPasteEditKinds: [vscode.DocumentDropOrPasteEditKind.Empty.append('precept', 'image')],
+      },
+    )
+  );
+
   // Register RST preview (pass theme from initial config load)
   const initialTheme = configManager.getThemeName();
   previewProvider = new RstPreviewProvider(config, indexBuilder, initialTheme);
@@ -268,6 +310,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       previewProvider.open();
     })
   );
+
+  // If a preview panel was deserialized before the provider was ready, adopt it now
+  if (deferredPanel) {
+    previewProvider.restorePanel(deferredPanel);
+    deferredPanel = undefined;
+  }
 
   // Register reload configuration command
   context.subscriptions.push(
