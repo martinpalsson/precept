@@ -13,6 +13,17 @@
   - New `signing` configuration block in `precept.json` (`enabled`, `gpgPath`, `defaultKeyId`, `requireSignature`)
   - Diagnostic warnings for stale and missing signatures
 
+- Image insertion support
+  - `Precept: Insert Image` command: file picker with copy to project and directive generation
+  - Clipboard paste: paste an image directly into an RST file, auto-saves and inserts `.. graphic::` with generated ID
+  - `:file:` path auto-completion for images in project directories
+- Preview panel now restores on VS Code restart
+- Local images now render in the live preview
+
+### Fixed
+- ID generation no longer picks up digit runs from signed hashes, filenames, or other non-ID content
+- Images inside item bodies now scale to fit the content area
+
 ### Security
 - Fix XSS in validation webview: HTML-escape all user-derived values and add Content Security Policy
 - Fix regex injection in code action provider and RST parser: escape dynamic values before RegExp construction
