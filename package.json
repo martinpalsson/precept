@@ -2,7 +2,7 @@
   "name": "precept",
   "displayName": "Precept",
   "description": "Lightweight requirements management for VS Code - IntelliSense, validation, traceability, and documentation for RST files",
-  "version": "0.4.0",
+  "version": "0.3.0",
   "icon": "icon.png",
   "publisher": "PoleshiftAB",
   "engines": {

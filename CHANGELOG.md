@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.4.0] - 2026-03-19
+## [0.3.0] - 2026-03-17
 
 ### Added
 - GPG signing for requirement approval (Closes #19)
@@ -19,8 +19,6 @@
 - Harden preview webview CSP: replace `script-src 'unsafe-inline'` with nonce-based policy
 - Fix path traversal in toctree builder: validate resolved paths stay within document root
 - Fix path traversal in asset copier: skip symlinks and validate destination paths
-
-## [0.3.0] - 2026-03-17
 
 ### Fixed
 - Editing lag when project contains multiple PlantUML graphics (#18)
