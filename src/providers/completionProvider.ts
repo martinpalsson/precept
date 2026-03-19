@@ -3,11 +3,13 @@
  */
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { IndexBuilder } from '../indexing/indexBuilder';
 import { PreceptConfig, RequirementObject, Level } from '../types';
 import { isInLinkContext, isInInlineItemContext } from '../indexing/rstParser';
 import { getLinkOptionNames, getStatusNames, getObjectTypeInfo, getLevelInfo, getCustomFieldNames, getCustomFieldValues, buildIdRegex, parseIdNumber } from '../configuration/defaults';
 import { generateNextId } from '../utils/idGenerator';
+import { resolveImageDirectory, listImageFiles, computeRelativePath } from '../utils/imageUtils';
 
 /**
  * Create completion item from requirement
@@ -574,6 +576,8 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
           return createLevelCompletions(this.config, attrContext.replaceRange);
         case 'status':
           return createStatusCompletions(this.config, attrContext.replaceRange);
+        case 'file':
+          return this.createImagePathCompletions(document, attrContext.replaceRange);
         default:
           // Check if it's a custom field with defined values
           const customFieldNames = getCustomFieldNames(this.config);
@@ -663,6 +667,68 @@ export class RequirementCompletionProvider implements vscode.CompletionItemProvi
   }
 
   /**
+   * Create completion items for image file paths.
+   */
+  private createImagePathCompletions(
+    document: vscode.TextDocument,
+    replaceRange: vscode.Range | null,
+  ): vscode.CompletionItem[] | null {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      return null;
+    }
+
+    // Scan image directories synchronously for completion speed
+    const fs = require('fs') as typeof import('fs');
+    const candidates = ['images', '_images', 'img'];
+    const items: vscode.CompletionItem[] = [];
+
+    // Find docs root by looking for precept.json nearby
+    const docRoots = [
+      path.join(workspaceRoot, 'docs'),
+      path.join(workspaceRoot, 'doc'),
+      path.join(workspaceRoot, 'source'),
+      workspaceRoot,
+    ];
+
+    for (const root of docRoots) {
+      for (const dir of candidates) {
+        const imageDir = path.join(root, dir);
+        if (!fs.existsSync(imageDir)) continue;
+
+        let entries: string[];
+        try {
+          entries = fs.readdirSync(imageDir)
+            .filter((f: string) => {
+              const ext = path.extname(f).toLowerCase();
+              return ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.bmp', '.webp'].includes(ext);
+            });
+        } catch {
+          continue;
+        }
+
+        for (const filename of entries) {
+          const fullPath = path.join(imageDir, filename);
+          const relativePath = computeRelativePath(document.uri.fsPath, fullPath);
+
+          const item = new vscode.CompletionItem(
+            relativePath,
+            vscode.CompletionItemKind.File,
+          );
+          item.detail = filename;
+          item.insertText = relativePath;
+          if (replaceRange) {
+            item.range = replaceRange;
+          }
+          items.push(item);
+        }
+      }
+    }
+
+    return items.length > 0 ? items : null;
+  }
+
+  /**
    * Resolve additional details for a completion item
    */
   public resolveCompletionItem(
@@ -690,13 +756,17 @@ function extractIdsFromOpenBuffers(config: PreceptConfig): string[] {
     if (doc.languageId !== 'restructuredtext') {
       continue;
     }
-    const text = doc.getText();
-    let match: RegExpExecArray | null;
-    idRegex.lastIndex = 0;
-    while ((match = idRegex.exec(text)) !== null) {
-      const id = match[0];
-      if (parseIdNumber(config.idConfig, id) !== null) {
-        ids.push(id);
+    // Only extract IDs from :id: fields to avoid matching digit runs
+    // in hashes, filenames, or other non-ID content
+    const lines = doc.getText().split('\n');
+    for (const line of lines) {
+      const idFieldMatch = line.match(/^\s+:id:\s*(\S+)/);
+      if (idFieldMatch) {
+        const candidate = idFieldMatch[1];
+        idRegex.lastIndex = 0;
+        if (idRegex.test(candidate) && parseIdNumber(config.idConfig, candidate) !== null) {
+          ids.push(candidate);
+        }
       }
     }
   }
