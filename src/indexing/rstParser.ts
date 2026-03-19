@@ -127,7 +127,10 @@ function buildRequirement(
   const metadata: Record<string, string> = {};
 
   // Reserved options that are not stored in metadata
-  const reservedOptions = new Set(['id', 'type', 'level', 'status', 'baseline']);
+  const reservedOptions = new Set([
+    'id', 'type', 'level', 'status', 'baseline',
+    'signature', 'signed_by', 'signed_date', 'signed_hash',
+  ]);
 
   for (const [key, value] of state.currentOptions) {
     if (reservedOptions.has(key)) {
@@ -163,6 +166,10 @@ function buildRequirement(
       endLine,
     },
     baseline: state.currentOptions.get('baseline'),
+    signature: state.currentOptions.get('signature'),
+    signedBy: state.currentOptions.get('signed_by'),
+    signedDate: state.currentOptions.get('signed_date'),
+    signedHash: state.currentOptions.get('signed_hash'),
   };
 }
 
@@ -480,7 +487,8 @@ export function isInLinkContext(
   const linkOptions = getLinkOptionNames(config);
 
   for (const option of linkOptions) {
-    const pattern = new RegExp(`:${option}:\\s*`);
+    const escaped = option.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`:${escaped}:\\s*`);
     const match = line.match(pattern);
     if (match && match.index !== undefined) {
       const optionEnd = match.index + match[0].length;

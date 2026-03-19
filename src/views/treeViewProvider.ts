@@ -7,6 +7,7 @@ import * as path from 'path';
 import { IndexBuilder } from '../indexing/indexBuilder';
 import { PreceptConfig, RequirementObject, TreeViewGroupBy } from '../types';
 import { getTreeViewGroupBy, shouldShowStatusIcons } from '../configuration/settingsManager';
+import { computeContentHash } from '../signing/canonicalHash';
 
 /**
  * Status icons
@@ -55,7 +56,21 @@ export class RequirementTreeItem extends vscode.TreeItem {
     if (requirement) {
       // This is a requirement item
       this.contextValue = 'requirement';
-      this.description = requirement.status || '';
+
+      // Build description with status and signature indicator
+      const parts: string[] = [];
+      if (requirement.status) {
+        parts.push(requirement.status);
+      }
+      if (requirement.signature) {
+        if (requirement.signedHash) {
+          const currentHash = computeContentHash(requirement);
+          parts.push(currentHash === requirement.signedHash ? '$(lock)' : '$(unlock)');
+        } else {
+          parts.push('$(lock)');
+        }
+      }
+      this.description = parts.join(' ');
       this.tooltip = this.createTooltip(requirement);
 
       // Set icon based on status
@@ -124,6 +139,26 @@ export class RequirementTreeItem extends vscode.TreeItem {
       lines.push('', 'Links:');
       for (const [linkType, ids] of Object.entries(req.links)) {
         lines.push(`  ${linkType}: ${ids.join(', ')}`);
+      }
+    }
+
+    if (req.signature) {
+      lines.push('');
+      if (req.signedHash) {
+        const currentHash = computeContentHash(req);
+        if (currentHash === req.signedHash) {
+          lines.push('🔒 Signed');
+        } else {
+          lines.push('⚠️ Signature stale (modified since signing)');
+        }
+      } else {
+        lines.push('🔒 Signed');
+      }
+      if (req.signedBy) {
+        lines.push(`Signed by: ${req.signedBy}`);
+      }
+      if (req.signedDate) {
+        lines.push(`Signed: ${req.signedDate}`);
       }
     }
 

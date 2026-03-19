@@ -62,7 +62,10 @@ function resolveEntry(
   visited.add(slug);
   order.push(slug);
 
-  const filePath = path.join(docRoot, `${slug}.rst`);
+  const filePath = path.resolve(docRoot, `${slug}.rst`);
+  if (!filePath.startsWith(path.resolve(docRoot) + path.sep)) {
+    return null; // Reject path traversal attempts
+  }
   if (!fs.existsSync(filePath)) {
     return { slug, title: slug, children: [] };
   }

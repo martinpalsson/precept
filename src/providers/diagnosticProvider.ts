@@ -8,6 +8,7 @@ import { PreceptConfig, DiagnosticType, ValidationIssue } from '../types';
 import { parseRstFile, getIdsInLine } from '../indexing/rstParser';
 import { getStatusNames, getObjectTypeValues, getLinkOptionNames } from '../configuration/defaults';
 import { getValidationDebounceMs, isAutoValidationEnabled, isValidateOnSaveEnabled } from '../configuration/settingsManager';
+import { computeContentHash } from '../signing/canonicalHash';
 import * as fs from 'fs';
 
 /**
@@ -28,6 +29,9 @@ function getSeverity(type: DiagnosticType): vscode.DiagnosticSeverity {
     case DiagnosticType.CircularDep:
     case DiagnosticType.StatusInconsistent:
       return vscode.DiagnosticSeverity.Warning;
+    case DiagnosticType.StaleSignature:
+      return vscode.DiagnosticSeverity.Warning;
+    case DiagnosticType.MissingSignature:
     case DiagnosticType.OrphanedReq:
     case DiagnosticType.MissingCoverage:
       return vscode.DiagnosticSeverity.Information;
@@ -113,6 +117,28 @@ export function validateFile(
         location: req.location,
         severity: 'error',
       });
+    }
+
+    // Check signature staleness (lightweight hash comparison — no GPG call)
+    if (config.signing?.enabled) {
+      if (req.signature && req.signedHash) {
+        const currentHash = computeContentHash(req);
+        if (currentHash !== req.signedHash) {
+          issues.push({
+            type: DiagnosticType.StaleSignature,
+            message: `Requirement '${req.id}' was modified after signing by ${req.signedBy || 'unknown'}`,
+            location: req.location,
+            severity: 'warning',
+          });
+        }
+      } else if (!req.signature && config.signing.requireSignature) {
+        issues.push({
+          type: DiagnosticType.MissingSignature,
+          message: `Requirement '${req.id}' is not signed`,
+          location: req.location,
+          severity: 'info',
+        });
+      }
     }
 
     // Check for broken links

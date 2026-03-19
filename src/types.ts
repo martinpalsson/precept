@@ -82,6 +82,16 @@ export interface HeadingStyle {
 }
 
 /**
+ * Signing configuration for GPG-based requirement approval
+ */
+export interface SigningConfig {
+  enabled: boolean;
+  gpgPath: string;
+  defaultKeyId?: string;
+  requireSignature: boolean;
+}
+
+/**
  * Complete Precept configuration
  */
 export interface PreceptConfig {
@@ -96,6 +106,7 @@ export interface PreceptConfig {
   // Melexis.trace configuration (optional)
   traceability_item_id_regex?: string;
   traceability_relationships?: Record<string, string>;
+  signing?: SigningConfig;
   /** @deprecated Use levels instead */
   idPrefixes?: IdPrefix[];
 }
@@ -123,6 +134,10 @@ export interface RequirementObject {
   metadata: Record<string, string>;   // Additional fields
   location: SourceLocation;           // File location
   baseline?: string;                  // Release baseline tag
+  signature?: string;                 // GPG detached signature (ASCII-armored, single line)
+  signedBy?: string;                  // GPG UID who signed
+  signedDate?: string;                // ISO date of signing
+  signedHash?: string;                // Content hash at time of signing
 }
 
 /**
@@ -154,6 +169,8 @@ export enum DiagnosticType {
   MissingLevel = 'missingLevel',
   MissingId = 'missingId',
   MissingCoverage = 'missingCoverage',
+  StaleSignature = 'staleSignature',
+  MissingSignature = 'missingSignature',
 }
 
 /**

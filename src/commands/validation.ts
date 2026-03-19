@@ -129,20 +129,20 @@ async function showValidationResults(result: DeepValidationResult): Promise<void
         : '🔵';
     return `<tr>
       <td>${severity}</td>
-      <td>${issue.type}</td>
-      <td>${issue.message}</td>
-      <td>${vscode.workspace.asRelativePath(issue.location.file)}:${issue.location.line}</td>
+      <td>${esc(String(issue.type))}</td>
+      <td>${esc(issue.message)}</td>
+      <td>${esc(vscode.workspace.asRelativePath(issue.location.file))}:${issue.location.line}</td>
     </tr>`;
   }).join('');
 
   const circularDepsHtml = result.circularDeps.length > 0
     ? `<h3>Circular Dependencies (${result.circularDeps.length})</h3>
-       <ul>${result.circularDeps.map(cycle => `<li>${cycle.join(' → ')}</li>`).join('')}</ul>`
+       <ul>${result.circularDeps.map(cycle => `<li>${cycle.map(esc).join(' → ')}</li>`).join('')}</ul>`
     : '<p>No circular dependencies found.</p>';
 
   const orphanedHtml = result.orphanedReqs.length > 0
     ? `<h3>Orphaned Requirements (${result.orphanedReqs.length})</h3>
-       <ul>${result.orphanedReqs.map(id => `<li>${id}</li>`).join('')}</ul>`
+       <ul>${result.orphanedReqs.map(id => `<li>${esc(id)}</li>`).join('')}</ul>`
     : '<p>No orphaned requirements found.</p>';
 
   panel.webview.html = `
@@ -150,6 +150,7 @@ async function showValidationResults(result: DeepValidationResult): Promise<void
     <html lang="en">
     <head>
       <meta charset="UTF-8">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Validation Report</title>
       <style>
@@ -207,6 +208,17 @@ async function showValidationResults(result: DeepValidationResult): Promise<void
     </body>
     </html>
   `;
+}
+
+/**
+ * Escape HTML special characters to prevent XSS in webview content.
+ */
+function esc(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**

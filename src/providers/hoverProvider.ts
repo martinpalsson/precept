@@ -8,6 +8,7 @@ import { IndexBuilder } from '../indexing/indexBuilder';
 import { PreceptConfig, RequirementObject } from '../types';
 import { findIdAtPosition } from '../indexing/rstParser';
 import { getObjectTypeInfo, getLevelInfo } from '../configuration/defaults';
+import { computeContentHash } from '../signing/canonicalHash';
 
 /**
  * Format requirement for hover display
@@ -38,6 +39,23 @@ function formatRequirementHover(
 
   if (req.baseline) {
     lines.push(`**Baseline:** ${req.baseline}`);
+  }
+
+  if (req.signature) {
+    let sigStatus: string;
+    if (req.signedHash) {
+      const currentHash = computeContentHash(req);
+      sigStatus = currentHash === req.signedHash ? '✅ Valid' : '⚠️ Stale (modified since signing)';
+    } else {
+      sigStatus = '🔒 Signed (no hash stored)';
+    }
+    lines.push(`**Signature:** ${sigStatus}`);
+    if (req.signedBy) {
+      lines.push(`**Signed by:** ${req.signedBy}`);
+    }
+    if (req.signedDate) {
+      lines.push(`**Signed date:** ${req.signedDate}`);
+    }
   }
 
   lines.push('');

@@ -5,6 +5,7 @@
  * TypeScript renderer. Updates live as the user types.
  */
 
+import * as crypto from 'crypto';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { parseRstDocument } from '../renderer/rstFullParser';
@@ -242,11 +243,14 @@ export class RstPreviewProvider implements vscode.Disposable {
    * Wrap body HTML in a full HTML page with styles and CSP.
    */
   private wrapHtml(body: string): string {
-    // CSP: allow inline styles, inline scripts, and images from PlantUML server
+    // Generate a unique nonce for this render pass
+    const nonce = crypto.randomBytes(16).toString('base64');
+
+    // CSP: nonce-based script policy, inline styles, images from PlantUML server
     const csp = [
       "default-src 'none'",
       "style-src 'unsafe-inline'",
-      "script-src 'unsafe-inline'",
+      `script-src 'nonce-${nonce}'`,
       "img-src data: vscode-resource: https://www.plantuml.com https:",
     ].join('; ');
 
@@ -270,7 +274,7 @@ export class RstPreviewProvider implements vscode.Disposable {
 </head>
 <body>
 ${body}
-<script>
+<script nonce="${nonce}">
 (function() {
   const vscode = acquireVsCodeApi();
   window.addEventListener('message', function(event) {

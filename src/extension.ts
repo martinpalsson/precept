@@ -37,6 +37,8 @@ import {
   registerGenerateReportCommand,
   registerCreateProjectCommand,
   registerDocumentationCommands,
+  registerSigningCommands,
+  SigningCommandManager,
 } from './commands';
 import { RstPreviewProvider } from './preview';
 import { PreceptConfig } from './types';
@@ -56,6 +58,7 @@ let diagnosticProvider: RequirementDiagnosticProvider;
 let codeActionProvider: RequirementCodeActionProvider;
 let treeViewProvider: RequirementTreeDataProvider;
 let relationshipExplorerProvider: RelationshipExplorerProvider;
+let signingManager: SigningCommandManager;
 let previewProvider: RstPreviewProvider;
 
 /**
@@ -122,6 +125,9 @@ function updateProvidersConfig(config: PreceptConfig): void {
   }
   if (relationshipExplorerProvider) {
     relationshipExplorerProvider.updateConfig(config);
+  }
+  if (signingManager) {
+    signingManager.updateConfig(config);
   }
   if (previewProvider) {
     previewProvider.updateConfig(config);
@@ -249,6 +255,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register documentation commands
   const docCommands = registerDocumentationCommands(context, indexBuilder);
   docCommands.forEach(cmd => context.subscriptions.push(cmd));
+
+  // Register signing commands
+  signingManager = registerSigningCommands(context, indexBuilder, config);
 
   // Register RST preview (pass theme from initial config load)
   const initialTheme = configManager.getThemeName();

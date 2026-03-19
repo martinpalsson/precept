@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0] - 2026-03-19
+
+### Added
+- GPG signing for requirement approval (Closes #19)
+  - Sign individual requirements or batch sign by status with `Precept: Sign Requirement` and `Precept: Sign All Requirements`
+  - Verify signatures with `Precept: Verify Requirement Signature`
+  - Supports local GPG keys and hardware tokens (YubiKey) transparently
+  - Stale signature detection: automatic warning when a signed requirement is modified
+  - Signature status shown in hover tooltips, Item Explorer tree view, and rendered HTML output
+  - Collapsible signature details block in preview and static HTML builds with full hash and signer info
+  - New `signing` configuration block in `precept.json` (`enabled`, `gpgPath`, `defaultKeyId`, `requireSignature`)
+  - Diagnostic warnings for stale and missing signatures
+
+### Security
+- Fix XSS in validation webview: HTML-escape all user-derived values and add Content Security Policy
+- Fix regex injection in code action provider and RST parser: escape dynamic values before RegExp construction
+- Harden preview webview CSP: replace `script-src 'unsafe-inline'` with nonce-based policy
+- Fix path traversal in toctree builder: validate resolved paths stay within document root
+- Fix path traversal in asset copier: skip symlinks and validate destination paths
+
 ## [0.3.0] - 2026-03-17
 
 ### Fixed

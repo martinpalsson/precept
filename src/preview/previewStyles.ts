@@ -204,6 +204,10 @@ img {
 .precept-body > *:first-child { margin-top: 0; }
 .precept-body > *:last-child { margin-bottom: 0; }
 
+.precept-item:has(.precept-signature) .precept-body {
+  padding-bottom: 0;
+}
+
 .precept-metadata-wrapper {
   flex: 0 0 auto;
   width: 25%;
@@ -529,10 +533,61 @@ ul.toctree li {
 }
 
 /* ---------------------------------------------------------------------------
+   Signature block
+   --------------------------------------------------------------------------- */
+.precept-signature {
+  margin: 0;
+  padding: 0.4em 0.75em;
+  border-top: 1px solid var(--precept-border-color);
+  font-size: 0.85em;
+  color: var(--precept-text-muted, #666);
+}
+
+.precept-signature summary {
+  cursor: pointer;
+  font-style: italic;
+}
+
+.precept-signature-stale {
+  border-top-color: #e65100;
+  background: rgba(230, 81, 0, 0.06);
+}
+
+.precept-signature-stale summary {
+  color: #e65100;
+}
+
+.precept-signature-table {
+  margin-top: 0.5em;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.precept-signature-table td {
+  padding: 0.25em 0.5em;
+  border: none;
+  vertical-align: top;
+}
+
+.precept-signature-table td:first-child {
+  white-space: nowrap;
+  font-weight: 600;
+  width: 120px;
+}
+
+.precept-signature-value {
+  word-break: break-all;
+}
+
+/* ---------------------------------------------------------------------------
    Print
    --------------------------------------------------------------------------- */
 @media print {
   .precept-item, .precept-graphic, .precept-code {
+    break-inside: avoid;
+  }
+
+  .precept-signature[open] {
     break-inside: avoid;
   }
 }

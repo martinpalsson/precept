@@ -14,6 +14,7 @@ import {
 import { PreceptConfig, RequirementIndex } from '../types';
 import { renderBlockNodes } from './htmlEmitter';
 import { encodePlantUml } from './plantumlRenderer';
+import { computeContentHash } from '../signing/canonicalHash';
 import hljs from 'highlight.js';
 
 const DEFAULT_PLANTUML_SERVER = 'https://www.plantuml.com/plantuml/svg/';
@@ -69,6 +70,19 @@ export function renderItemDirective(node: ItemDirectiveNode, ctx: RenderContext)
   }
 
   parts.push('</div>'); // precept-content-wrapper
+
+  // Signature block (full width, collapsible)
+  if (node.options.signature || node.options.signed_by) {
+    let isStale = false;
+    if (node.id && node.options.signed_hash && ctx.index) {
+      const req = ctx.index.objects.get(node.id);
+      if (req) {
+        isStale = computeContentHash(req) !== node.options.signed_hash;
+      }
+    }
+    parts.push(renderSignatureBlock(node.options, isStale));
+  }
+
   parts.push('</div>'); // precept-item
 
   return parts.join('\n');
@@ -303,7 +317,10 @@ function addLinkRows(rows: MetadataRow[], options: Record<string, string>, confi
 
 function addExtraOptionRows(rows: MetadataRow[], options: Record<string, string>, _config: PreceptConfig): void {
   // Extra options are not currently stored in PreceptConfig, but we can detect them
-  const knownOptions = new Set(['id', 'type', 'level', 'status', 'value', 'term', 'file', 'alt', 'scale', 'caption', 'language']);
+  const knownOptions = new Set([
+    'id', 'type', 'level', 'status', 'value', 'term', 'file', 'alt', 'scale', 'caption', 'language',
+    'signature', 'signed_by', 'signed_date', 'signed_hash',
+  ]);
 
   for (const [key, value] of Object.entries(options)) {
     if (knownOptions.has(key)) continue;
@@ -399,6 +416,42 @@ function renderMetadataTable(rows: MetadataRow[]): string {
   parts.push('</tbody>');
   parts.push('</table>');
   parts.push('</div>');
+
+  return parts.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Signature block (collapsible, full width)
+// ---------------------------------------------------------------------------
+
+function renderSignatureBlock(options: Record<string, string>, isStale: boolean): string {
+  const parts: string[] = [];
+  const staleClass = isStale ? ' precept-signature-stale' : '';
+  parts.push(`<details class="precept-signature${staleClass}">`);
+
+  const signedBy = options.signed_by || 'unknown';
+  const signedDate = options.signed_date || 'unknown';
+
+  if (isStale) {
+    parts.push(`<summary>Stale signature — content modified since signing by ${escapeHtml(signedBy)} on ${escapeHtml(signedDate)}</summary>`);
+  } else {
+    parts.push(`<summary>Signed by ${escapeHtml(signedBy)} on ${escapeHtml(signedDate)}</summary>`);
+  }
+
+  parts.push('<table class="precept-signature-table">');
+  parts.push('<tbody>');
+
+  if (options.signed_hash) {
+    parts.push(`<tr><td>Content hash</td><td><code>${escapeHtml(options.signed_hash)}</code></td></tr>`);
+  }
+
+  if (options.signature) {
+    parts.push(`<tr><td>Signature</td><td><code class="precept-signature-value">${escapeHtml(options.signature)}</code></td></tr>`);
+  }
+
+  parts.push('</tbody>');
+  parts.push('</table>');
+  parts.push('</details>');
 
   return parts.join('\n');
 }

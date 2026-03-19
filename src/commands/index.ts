@@ -7,3 +7,4 @@ export * from './baseline';
 export * from './reports';
 export * from './project';
 export * from './documentation';
+export * from './signing';

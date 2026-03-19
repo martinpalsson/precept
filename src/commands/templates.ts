@@ -507,6 +507,53 @@ export const PRECEPT_CSS_TEMPLATE = `/* ========================================
 /* -----------------------------------------------------------------------------
    Print Styles
    ----------------------------------------------------------------------------- */
+/* =============================================================================
+   SIGNATURE BLOCK
+   ============================================================================= */
+.precept-signature {
+    margin: 0;
+    padding: 0.4em 0.75em;
+    border-top: 1px solid var(--precept-border-color);
+    font-size: 0.85em;
+    color: var(--precept-text-secondary);
+}
+
+.precept-signature summary {
+    cursor: pointer;
+    font-style: italic;
+}
+
+.precept-signature-stale {
+    border-top-color: #e65100;
+    background: rgba(230, 81, 0, 0.06);
+}
+
+.precept-signature-stale summary {
+    color: #e65100;
+}
+
+.precept-signature-table {
+    margin-top: 0.5em;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.precept-signature-table td {
+    padding: 0.25em 0.5em;
+    border: none;
+    vertical-align: top;
+}
+
+.precept-signature-table td:first-child {
+    white-space: nowrap;
+    font-weight: 600;
+    width: 120px;
+}
+
+.precept-signature-value {
+    word-break: break-all;
+}
+
 @media print {
     .precept-item {
         break-inside: avoid;
@@ -519,6 +566,10 @@ export const PRECEPT_CSS_TEMPLATE = `/* ========================================
     }
 
     .precept-code {
+        break-inside: avoid;
+    }
+
+    .precept-signature[open] {
         break-inside: avoid;
     }
 }

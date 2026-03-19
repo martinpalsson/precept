@@ -52,11 +52,22 @@ export function copyImages(sourceDir: string, outputDir: string): void {
  */
 function copyDirRecursive(src: string, dest: string): void {
   mkdirSync(dest);
+  const resolvedDest = path.resolve(dest);
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
+    // Skip symlinks to prevent symlink-based traversal
+    if (entry.isSymbolicLink()) {
+      continue;
+    }
+
     const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+    const destPath = path.resolve(dest, entry.name);
+
+    // Validate destination stays within the target directory
+    if (!destPath.startsWith(resolvedDest + path.sep)) {
+      continue;
+    }
 
     if (entry.isDirectory()) {
       copyDirRecursive(srcPath, destPath);

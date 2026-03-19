@@ -16,6 +16,7 @@ import {
   CustomFields,
   CustomFieldValue,
   HeadingStyle,
+  SigningConfig,
   ConfigLoadResult,
 } from '../types';
 import { DEFAULT_CONFIG, buildIdRegex } from './defaults';
@@ -79,6 +80,7 @@ function parseRawConfig(raw: {
   statuses?: Array<Record<string, unknown>>;
   customFields?: Record<string, Array<Record<string, unknown>>>;
   headingStyles?: Array<Record<string, unknown>>;
+  signing?: Record<string, unknown>;
   extraOptions?: string[];
   defaultStatus?: string;
   idRegex?: string;
@@ -135,6 +137,14 @@ function parseRawConfig(raw: {
     overline: Boolean(h.overline),
   })).filter(h => h.char.length === 1);
 
+  // Parse signing config
+  const signing: SigningConfig | undefined = raw.signing ? {
+    enabled: Boolean(raw.signing.enabled),
+    gpgPath: String(raw.signing.gpgPath || 'gpg'),
+    defaultKeyId: raw.signing.defaultKeyId ? String(raw.signing.defaultKeyId) : undefined,
+    requireSignature: Boolean(raw.signing.requireSignature),
+  } : undefined;
+
   // Build ID regex from idConfig
   const id_regex = buildIdRegex(idConfig);
 
@@ -147,6 +157,7 @@ function parseRawConfig(raw: {
     customFields,
     headingStyles: headingStyles.length > 0 ? headingStyles : DEFAULT_CONFIG.headingStyles,
     id_regex,
+    signing,
     traceability_item_id_regex: raw.idRegex,
     traceability_relationships: raw.relationships,
   };

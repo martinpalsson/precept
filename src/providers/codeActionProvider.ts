@@ -92,7 +92,8 @@ export class RequirementCodeActionProvider implements vscode.CodeActionProvider 
     const edit = new vscode.WorkspaceEdit();
 
     // Find and remove the ID from the line
-    const idRegex = new RegExp(`\\b${brokenId}\\b,?\\s*|,?\\s*\\b${brokenId}\\b`);
+    const escapedId = escapeRegExp(brokenId);
+    const idRegex = new RegExp(`\\b${escapedId}\\b,?\\s*|,?\\s*\\b${escapedId}\\b`);
     const newLine = line.replace(idRegex, '').replace(/,\s*,/g, ',').replace(/:\s*,/g, ':').replace(/,\s*$/g, '');
 
     edit.replace(
@@ -153,7 +154,7 @@ export class RequirementCodeActionProvider implements vscode.CodeActionProvider 
     const edit = new vscode.WorkspaceEdit();
 
     // Replace the ID in the :id: line
-    const idLineRegex = new RegExp(`:id:\\s*${duplicateId}\\b`);
+    const idLineRegex = new RegExp(`:id:\\s*${escapeRegExp(duplicateId)}\\b`);
     const newLine = line.replace(idLineRegex, `:id: ${newId}`);
 
     edit.replace(
@@ -199,7 +200,7 @@ export class RequirementCodeActionProvider implements vscode.CodeActionProvider 
       const edit = new vscode.WorkspaceEdit();
 
       // Replace the status in the :status: line
-      const statusLineRegex = new RegExp(`:status:\\s*${invalidStatus}\\b`);
+      const statusLineRegex = new RegExp(`:status:\\s*${escapeRegExp(invalidStatus)}\\b`);
       const newLine = line.replace(statusLineRegex, `:status: ${status}`);
 
       edit.replace(
@@ -221,6 +222,13 @@ export class RequirementCodeActionProvider implements vscode.CodeActionProvider 
 
     return actions;
   }
+}
+
+/**
+ * Escape special regex characters in a string for safe use in RegExp construction.
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

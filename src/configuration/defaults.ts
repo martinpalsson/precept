@@ -2,7 +2,7 @@
  * Default configuration when precept.json is not found or parsing fails
  */
 
-import { PreceptConfig, ObjectType, Level, IdConfig, LinkType, Status, CustomFields, HeadingStyle } from '../types';
+import { PreceptConfig, ObjectType, Level, IdConfig, LinkType, Status, CustomFields, HeadingStyle, SigningConfig } from '../types';
 
 export const DEFAULT_OBJECT_TYPES: ObjectType[] = [
   {
@@ -102,6 +102,15 @@ export const DEFAULT_STATUSES: Status[] = [
  * Default custom fields (empty - user defines their own)
  */
 export const DEFAULT_CUSTOM_FIELDS: CustomFields = {};
+
+/**
+ * Default signing configuration (disabled by default)
+ */
+export const DEFAULT_SIGNING_CONFIG: SigningConfig = {
+  enabled: false,
+  gpgPath: 'gpg',
+  requireSignature: false,
+};
 
 /**
  * Default heading styles — Python documentation convention.
