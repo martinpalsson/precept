@@ -239,22 +239,9 @@ async function signRequirement(
   config: PreceptConfig,
 ): Promise<boolean> {
   const gpgPath = config.signing?.gpgPath || 'gpg';
-  const contentHash = computeContentHash(req);
-
-  let armoredSig: string;
-  try {
-    armoredSig = await signData(contentHash, keyId, gpgPath);
-  } catch (error) {
-    vscode.window.showErrorMessage(
-      `GPG signing failed for ${req.id}: ${error instanceof Error ? error.message : String(error)}`
-    );
-    return false;
-  }
-
-  const compact = compactSignature(armoredSig);
   const signedDate = new Date().toISOString().slice(0, 10);
 
-  // Get signer info from GPG key: "Name <email> (key ID)"
+  // Resolve signer identity first
   let signedBy = keyId;
   try {
     const keys = await listSecretKeys(gpgPath);
@@ -267,6 +254,26 @@ async function signRequirement(
   } catch {
     // Use keyId as fallback
   }
+
+  // Compute hash with the signing metadata included (as the indexer will see it)
+  const reqForHash: RequirementObject = {
+    ...req,
+    signedBy,
+    signedDate,
+  };
+  const contentHash = computeContentHash(reqForHash);
+
+  let armoredSig: string;
+  try {
+    armoredSig = await signData(contentHash, keyId, gpgPath);
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `GPG signing failed for ${req.id}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return false;
+  }
+
+  const compact = compactSignature(armoredSig);
 
   return writeSignatureToFile(
     req.location.file,
