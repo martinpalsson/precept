@@ -72,7 +72,7 @@ describe('canonicalize', () => {
     expect(prioIdx).toBeLessThan(prodIdx);
   });
 
-  it('excludes signature-related metadata', () => {
+  it('excludes signature from metadata but keeps signed_by and signed_date', () => {
     const req = makeReq({
       metadata: {
         signature: 'abc123',
@@ -83,8 +83,8 @@ describe('canonicalize', () => {
     });
     const result = canonicalize(req);
     expect(result).not.toContain('meta.signature');
-    expect(result).not.toContain('meta.signed_by');
-    expect(result).not.toContain('meta.signed_date');
+    expect(result).toContain('meta.signed_by:someone');
+    expect(result).toContain('meta.signed_date:2026-01-01');
     expect(result).toContain('meta.priority:high');
   });
 
@@ -130,16 +130,22 @@ describe('computeContentHash', () => {
     expect(computeContentHash(req1)).not.toBe(computeContentHash(req2));
   });
 
-  it('is not affected by signature fields on the RequirementObject', () => {
+  it('is not affected by signature and signedHash fields', () => {
     const req1 = makeReq();
     const req2 = makeReq({
       signature: 'some-sig-data',
-      signedBy: 'Jane Doe',
-      signedDate: '2026-03-19',
       signedHash: 'abc123',
     });
-    // signature/signedBy/signedDate/signedHash are on the object but not in metadata,
-    // so they should not affect the canonical form at all
+    // signature and signedHash are cryptographic data, excluded from hash
     expect(computeContentHash(req1)).toBe(computeContentHash(req2));
+  });
+
+  it('includes signedBy and signedDate in the hash (audit record)', () => {
+    const req1 = makeReq();
+    const req2 = makeReq({ signedBy: 'Jane Doe' });
+    const req3 = makeReq({ signedDate: '2026-03-19' });
+    // Changing who signed or when should invalidate the hash
+    expect(computeContentHash(req1)).not.toBe(computeContentHash(req2));
+    expect(computeContentHash(req1)).not.toBe(computeContentHash(req3));
   });
 });

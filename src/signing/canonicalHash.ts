@@ -9,19 +9,17 @@
 import * as crypto from 'crypto';
 import { RequirementObject } from '../types';
 
-/** Fields excluded from the canonical hash (signing metadata + operational fields) */
+/** Fields excluded from the canonical hash (cryptographic data only) */
 const EXCLUDED_METADATA_KEYS = new Set([
   'signature',
-  'signed_by',
-  'signed_date',
 ]);
 
 /**
  * Build a deterministic canonical string from a requirement's semantic content.
  *
  * Included: id, type, level, title, description (normalized), status, links (sorted),
- *           metadata keys (sorted, excluding signature fields).
- * Excluded: signature, signed_by, signed_date, baseline.
+ *           signed_by, signed_date, metadata keys (sorted).
+ * Excluded: signature, signed_hash, baseline.
  */
 export function canonicalize(req: RequirementObject): string {
   const parts: string[] = [];
@@ -45,6 +43,14 @@ export function canonicalize(req: RequirementObject): string {
 
   if (req.status) {
     parts.push(`status:${req.status}`);
+  }
+
+  // Signing audit fields — part of the approval record
+  if (req.signedBy) {
+    parts.push(`signed_by:${req.signedBy}`);
+  }
+  if (req.signedDate) {
+    parts.push(`signed_date:${req.signedDate}`);
   }
 
   // Links — sorted by link type, then sorted IDs within each type
